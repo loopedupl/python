@@ -1,70 +1,152 @@
-# Lekcja: Struktura projektu Django
+# Struktura projektu Django
 
-W tej lekcji nauczysz się jak utworzyć nowy projekt Django oraz zrozumieć jego podstawową strukturę.
+W tym przewodniku opiszę, jak zbudować podstawową strukturę projektu Django. Poniżej znajdziesz instrukcje krok po kroku.
+
+## Wymagania wstępne
+
+Upewnij się, że masz zainstalowane:
+
+- Python 3.6 lub nowszy
+- Pip (menedżer pakietów dla Pythona)
+- Django (w wersji 3.0 lub nowszej)
 
 ---
 
-## Krok 1: Zainstaluj Django
+## Krok 1: Tworzenie środowiska wirtualnego
 
-Najpierw zainstaluj Django, jeśli nie masz go jeszcze na swoim komputerze. Możesz to zrobić za pomocą `pip`:
+Zaleca się użycie wirtualnego środowiska do zarządzania zależnościami projektu. Możesz utworzyć środowisko wirtualne za pomocą `venv`:
+
+```bash
+python -m venv myenv
+```
+
+### Aktywuj środowisko wirtualne:
+
+- **Windows:**
+
+```bash
+myenv\Scripts\activate
+```
+
+- **macOS/Linux:**
+
+```bash
+source myenv/bin/activate
+```
+
+---
+
+## Krok 2: Instalacja Django
+
+Zainstaluj Django w aktywowanym środowisku wirtualnym:
 
 ```bash
 pip install django
 ```
 
-> **Uwaga:** Upewnij się, że masz zainstalowanego Pythona w wersji 3.6 lub nowszej.
-
 ---
 
-## Krok 2: Stwórz nowy projekt Django
+## Krok 3: Tworzenie projektu Django
 
-Aby utworzyć nowy projekt Django, użyj następującej komendy w terminalu:
+Utwórz nowy projekt Django, używając polecenia:
 
 ```bash
-django-admin startproject moja_strona
+django-admin startproject projekt_django
 ```
 
-Ta komenda utworzy katalog o nazwie `moja_strona`, który będzie zawierał podstawową strukturę projektu Django.
+Zamień `projekt_django` na nazwę swojego projektu.
 
 ---
 
-## Krok 3: Przegląd struktury projektu
+## Krok 4: Struktura projektu
 
-Po utworzeniu projektu Django, powinieneś zobaczyć następującą strukturę plików:
+Po utworzeniu projektu zobaczysz następującą strukturę katalogów:
 
 ```
-moja_strona/
+projekt_django/
     manage.py
-    moja_strona/
+    projekt_django/
         __init__.py
         settings.py
         urls.py
-        asgi.py
         wsgi.py
 ```
 
-### Wyjaśnienie plików:
+### Opis plików:
 
-- `manage.py`: Skrypt zarządzający projektem, używany do uruchamiania serwera, migracji bazy danych itd.
-- `__init__.py`: Plik oznaczający folder `moja_strona` jako moduł Pythona.
-- `settings.py`: Główne ustawienia projektu.
-- `urls.py`: Deklaracja tras URL w projekcie.
-- `asgi.py` i `wsgi.py`: Pliki odpowiedzialne za komunikację między serwerem a aplikacją (odpowiednio dla ASGI i WSGI).
+- **manage.py**: Skrypt do zarządzania projektem (uruchamianie serwera, migracje, itp.).
+- **projekt_django/** (katalog): Główny katalog projektu, który zawiera konfigurację.
+- **`__init__.py`**: Plik, który oznacza, że ten katalog jest pakietem Pythona.
+- **settings.py**: Plik konfiguracyjny projektu, w którym definiujesz ustawienia.
+- **urls.py**: Plik, w którym definiujesz ścieżki URL dla swojego projektu.
+- **wsgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze WSGI.
 
 ---
 
-## Krok 4: Uruchomienie serwera deweloperskiego
+## Krok 5: Tworzenie aplikacji Django
 
-Aby uruchomić serwer deweloperski, użyj poniższej komendy:
+Aplikacje w Django to komponenty, które realizują konkretne funkcjonalności. Aby utworzyć nową aplikację, użyj polecenia:
+
+```bash
+python manage.py startapp myapp
+```
+
+Zamień `myapp` na nazwę swojej aplikacji.
+
+---
+
+## Krok 6: Struktura aplikacji
+
+Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `myapp`:
+
+```
+myapp/
+    migrations/
+        __init__.py
+    __init__.py
+    admin.py
+    apps.py
+    models.py
+    tests.py
+    views.py
+```
+
+### Opis plików:
+
+- **migrations/**: Katalog, w którym przechowywane są migracje bazy danych.
+- **admin.py**: Plik do rejestracji modeli w panelu administracyjnym.
+- **apps.py**: Plik konfiguracyjny aplikacji.
+- **models.py**: Plik, w którym definiujesz modele bazy danych.
+- **tests.py**: Plik, w którym możesz pisać testy dla aplikacji.
+- **views.py**: Plik, w którym definiujesz widoki aplikacji.
+
+---
+
+## Krok 7: Dodanie aplikacji do projektu
+
+Aby dodać nowo utworzoną aplikację do projektu, otwórz plik `settings.py` i dodaj nazwę aplikacji do listy `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'myapp',
+]
+```
+
+---
+
+## Krok 8: Uruchomienie serwera deweloperskiego
+
+Na koniec uruchom serwer deweloperski, aby sprawdzić, czy wszystko działa poprawnie:
 
 ```bash
 python manage.py runserver
 ```
 
-Serwer powinien być dostępny pod adresem `http://127.0.0.1:8000/`. Sprawdź go w swojej przeglądarce!
+Serwer powinien być dostępny pod adresem `http://127.0.0.1:8000/`.
 
 ---
 
-## Krok 5: Podsumowanie
+## Podsumowanie
 
-Nauczyłeś się, jak zainstalować Django, utworzyć nowy projekt oraz zrozumieć podstawową strukturę projektu. W kolejnych lekcjach zajmiemy się tworzeniem aplikacji oraz konfiguracją szablonów i baz danych.
+Stworzyliśmy podstawową strukturę projektu Django oraz dodaliśmy aplikację. Teraz możesz zacząć rozwijać swoje funkcjonalności!
