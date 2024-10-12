@@ -50,7 +50,7 @@ Po zainstalowaniu PostgreSQL, uruchom terminal i wykonaj następujące polecenia
 1. Uruchom konsolę PostgreSQL:
 
    ```bash
-   sudo -u postgres psql
+   psql -U postgres
    ```
 
 2. Utwórz nowego użytkownika:
