@@ -1,152 +1,201 @@
-# Struktura projektu Django
+# Konfiguracja bazy danych w Django
 
-## Wymagania wstępne
+## Spis treści
 
-Upewnij się, że masz zainstalowane:
-
-- Python 3.6 lub nowszy
-- Pip (menedżer pakietów dla Pythona)
-- Django (w wersji 3.0 lub nowszej)
-
----
-
-## Krok 1: Tworzenie środowiska wirtualnego
-
-Zaleca się użycie wirtualnego środowiska do zarządzania zależnościami projektu. Możesz utworzyć środowisko wirtualne za pomocą `venv`:
-
-```bash
-python -m venv myenv
-```
-
-### Aktywuj środowisko wirtualne:
-
-- **Windows:**
-
-```bash
-myenv\Scripts\activate
-```
-
-- **macOS/Linux:**
-
-```bash
-source myenv/bin/activate
-```
+1. [Wprowadzenie](#1-wprowadzenie)
+2. [Wybór bazy danych](#2-wybór-bazy-danych)
+3. [Instalacja bazy danych](#3-instalacja-bazy-danych)
+4. [Instalacja biblioteki bazy danych](#4-instalacja-biblioteki-bazy-danych)
+5. [Konfiguracja ustawień bazy danych](#5-konfiguracja-ustawień-bazy-danych)
+6. [Podsumowanie](#6-podsumowanie)
 
 ---
 
-## Krok 2: Instalacja Django
+## 1. Wprowadzenie
 
-Zainstaluj Django w aktywowanym środowisku wirtualnym:
-
-```bash
-pip install django
-```
+Django obsługuje wiele różnych baz danych, w tym SQLite, PostgreSQL, MySQL i inne. W tym przewodniku omówimy, jak skonfigurować bazę danych w projekcie Django.
 
 ---
 
-## Krok 3: Tworzenie projektu Django
+## 2. Wybór bazy danych
 
-Utwórz nowy projekt Django, używając polecenia:
-
-```bash
-django-admin startproject projekt_django
-```
-
-Zamień `projekt_django` na nazwę swojego projektu.
+Domyślną bazą danych w Django jest SQLite, która jest łatwa w użyciu i nie wymaga dodatkowej konfiguracji. Jeśli jednak potrzebujesz bardziej zaawansowanej bazy danych, możesz wybrać PostgreSQL lub MySQL. Upewnij się, że masz zainstalowaną odpowiednią bazę danych na swoim systemie.
 
 ---
 
-## Krok 4: Struktura projektu
+## 3. Instalacja bazy danych
 
-Po utworzeniu projektu zobaczysz następującą strukturę katalogów:
+### PostgreSQL
 
-```
-projekt_django/
-    manage.py
-    projekt_django/
-        __init__.py
-        asgi.py
-        settings.py
-        urls.py
-        wsgi.py
-```
+#### Krok 1: Zainstaluj PostgreSQL
 
-### Opis plików:
+- **Windows**: Możesz pobrać instalator z [oficjalnej strony PostgreSQL](https://www.postgresql.org/download/windows/).
+- **macOS**: Użyj Homebrew:
 
-- **manage.py**: Skrypt do zarządzania projektem (uruchamianie serwera, migracje, itp.).
-- **projekt_django/** (katalog): Główny katalog projektu, który zawiera konfigurację.
-- **`__init__.py`**: Plik, który oznacza, że ten katalog jest pakietem Pythona.
-- **settings.py**: Plik konfiguracyjny projektu, w którym definiujesz ustawienia.
-- **urls.py**: Plik, w którym definiujesz ścieżki URL dla swojego projektu.
-- **asgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze ASGI.
-- **wsgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze WSGI.
+  ```bash
+  brew install postgresql
+  ```
 
----
+- **Linux**: Użyj menedżera pakietów (np. `apt` dla Debiana/Ubuntu):
 
-## Krok 5: Tworzenie aplikacji Django
+  ```bash
+  sudo apt update
+  sudo apt install postgresql postgresql-contrib
+  ```
 
-Aplikacje w Django to komponenty, które realizują konkretne funkcjonalności. Aby utworzyć nową aplikację, użyj polecenia:
+#### Krok 2: Utwórz bazę danych i użytkownika
 
-```bash
-python manage.py startapp myapp
-```
+Po zainstalowaniu PostgreSQL, uruchom terminal i wykonaj następujące polecenia, aby utworzyć bazę danych i użytkownika:
 
-Zamień `myapp` na nazwę swojej aplikacji.
+1. Uruchom konsolę PostgreSQL:
 
----
+   ```bash
+   sudo -u postgres psql
+   ```
 
-## Krok 6: Struktura aplikacji
+2. Utwórz nowego użytkownika:
 
-Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `myapp`:
+   ```sql
+   CREATE USER nazwa_użytkownika WITH PASSWORD 'twoje_hasło';
+   ```
 
-```
-myapp/
-    migrations/
-        __init__.py
-    __init__.py
-    admin.py
-    apps.py
-    models.py
-    tests.py
-    views.py
-```
+3. Utwórz bazę danych:
 
-### Opis plików:
+   ```sql
+   CREATE DATABASE nazwa_bazy_danych OWNER nazwa_użytkownika;
+   ```
 
-- **migrations/**: Katalog, w którym przechowywane są migracje bazy danych.
-- **admin.py**: Plik do rejestracji modeli w panelu administracyjnym.
-- **apps.py**: Plik konfiguracyjny aplikacji.
-- **models.py**: Plik, w którym definiujesz modele bazy danych.
-- **tests.py**: Plik, w którym możesz pisać testy dla aplikacji.
-- **views.py**: Plik, w którym definiujesz widoki aplikacji.
+4. Przyznaj uprawnienia:
 
----
+   ```sql
+   GRANT ALL PRIVILEGES ON DATABASE nazwa_bazy_danych TO nazwa_użytkownika;
+   ```
 
-## Krok 7: Dodanie aplikacji do projektu
+5. Wyjdź z konsoli PostgreSQL:
 
-Aby dodać nowo utworzoną aplikację do projektu, otwórz plik `settings.py` i dodaj nazwę aplikacji do listy `INSTALLED_APPS`:
+   ```sql
+   \q
+   ```
+
+### MySQL
+
+#### Krok 1: Zainstaluj MySQL
+
+- **Windows**: Możesz pobrać instalator z [oficjalnej strony MySQL](https://dev.mysql.com/downloads/installer/).
+- **macOS**: Użyj Homebrew:
+
+  ```bash
+  brew install mysql
+  ```
+
+- **Linux**: Użyj menedżera pakietów (np. `apt` dla Debiana/Ubuntu):
+
+  ```bash
+  sudo apt update
+  sudo apt install mysql-server
+  ```
+
+#### Krok 2: Utwórz bazę danych i użytkownika
+
+Po zainstalowaniu MySQL, uruchom terminal i wykonaj następujące polecenia, aby utworzyć bazę danych i użytkownika:
+
+1. Uruchom konsolę MySQL:
+
+   ```bash
+   sudo mysql -u root -p
+   ```
+
+2. Utwórz nowego użytkownika:
+
+   ```sql
+   CREATE USER 'nazwa_użytkownika'@'localhost' IDENTIFIED BY 'twoje_hasło';
+   ```
+
+3. Utwórz bazę danych:
+
+   ```sql
+   CREATE DATABASE nazwa_bazy_danych;
+   ```
+
+4. Przyznaj uprawnienia:
+
+   ```sql
+   GRANT ALL PRIVILEGES ON nazwa_bazy_danych.* TO 'nazwa_użytkownika'@'localhost';
+   ```
+
+5. Wyjdź z konsoli MySQL:
+
+   ```sql
+   EXIT;
+   ```
+
+## 4. Instalacja biblioteki bazy danych
+
+### Krok 1: Zainstaluj odpowiednią bibliotekę
+
+W zależności od wybranej bazy danych, będziesz musiał zainstalować odpowiednią bibliotekę. Oto przykłady:
+
+- Dla **PostgreSQL**:
+
+  ```bash
+  pip install psycopg2
+  ```
+
+- Dla **MySQL**:
+
+  ```bash
+  pip install mysqlclient
+  ```
+
+- Dla **SQLite** (nie wymaga instalacji, jest wbudowana w Pythona).
+
+## 5. Konfiguracja ustawień bazy danych
+
+### Krok 1: Edytuj plik `settings.py`
+
+Otwórz plik `settings.py`, który znajduje się w folderze twojego projektu. W sekcji `DATABASES` skonfiguruj ustawienia bazy danych. Oto przykładowa konfiguracja dla różnych baz danych:
+
+**Dla PostgreSQL:**
 
 ```python
-INSTALLED_APPS = [
-    ...
-    'myapp',
-]
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'nazwa_bazy_danych',
+        'USER': 'nazwa_użytkownika',
+        'PASSWORD': 'twoje_hasło',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 ```
 
----
+**Dla MySQL:**
 
-## Krok 8: Uruchomienie serwera deweloperskiego
-
-Na koniec uruchom serwer deweloperski, aby sprawdzić, czy wszystko działa poprawnie:
-
-```bash
-python manage.py runserver
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'nazwa_bazy_danych',
+        'USER': 'nazwa_użytkownika',
+        'PASSWORD': 'twoje_hasło',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+}
 ```
 
-Serwer powinien być dostępny pod adresem `http://127.0.0.1:8000/`.
+**Dla SQLite (domyślna konfiguracja):**
 
----
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / "db.sqlite3",
+    }
+}
+```
 
-## Podsumowanie
+## 6. Podsumowanie
 
-Stworzyliśmy podstawową strukturę projektu Django oraz dodaliśmy aplikację. Teraz możesz zacząć rozwijać swoje funkcjonalności!
+W tej lekcji nauczyłeś się, jak skonfigurować bazę danych w projekcie Django, w tym jak zainstalować bazę danych, utworzyć użytkownika oraz bazę danych, zainstalować potrzebne biblioteki oraz skonfigurować ustawienia w pliku `settings.py`. Teraz możesz zaczynać pracę z bazą danych w swojej aplikacji Django!
