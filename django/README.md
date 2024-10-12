@@ -88,19 +88,19 @@ projekt_django/
 Aplikacje w Django to komponenty, które realizują konkretne funkcjonalności. Aby utworzyć nową aplikację, użyj polecenia:
 
 ```bash
-python manage.py startapp myapp
+python manage.py startapp app_name
 ```
 
-Zamień `myapp` na nazwę swojej aplikacji.
+My zamienimy `app_name` na nazwę naszej przykładowej aplikacji `author`.
 
 ---
 
 ## Krok 6: Struktura aplikacji
 
-Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `myapp`:
+Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `author`:
 
 ```
-myapp/
+author/
     migrations/
         __init__.py
     __init__.py
@@ -129,7 +129,7 @@ Aby dodać nowo utworzoną aplikację do projektu, otwórz plik `settings.py` i 
 ```python
 INSTALLED_APPS = [
     ...
-    'myapp',
+    'author',
 ]
 ```
 
