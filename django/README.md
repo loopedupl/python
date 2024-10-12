@@ -1,7 +1,5 @@
 # Struktura projektu Django
 
-W tym przewodniku opiszę, jak zbudować podstawową strukturę projektu Django. Poniżej znajdziesz instrukcje krok po kroku.
-
 ## Wymagania wstępne
 
 Upewnij się, że masz zainstalowane:
@@ -67,6 +65,7 @@ projekt_django/
     manage.py
     projekt_django/
         __init__.py
+        asgi.py
         settings.py
         urls.py
         wsgi.py
@@ -79,6 +78,7 @@ projekt_django/
 - **`__init__.py`**: Plik, który oznacza, że ten katalog jest pakietem Pythona.
 - **settings.py**: Plik konfiguracyjny projektu, w którym definiujesz ustawienia.
 - **urls.py**: Plik, w którym definiujesz ścieżki URL dla swojego projektu.
+- **asgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze ASGI.
 - **wsgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze WSGI.
 
 ---
