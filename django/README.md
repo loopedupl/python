@@ -22,10 +22,10 @@ Zacznij od utworzenia nowego projektu Django. W terminalu wpisz poniższe komend
 pip install django
 
 # Tworzenie nowego projektu Django
-django-admin startproject myproject
+django-admin startproject projekt_django
 
 # Przejdź do katalogu projektu
-cd myproject
+cd projekt_django
 ```
 
 ### 2. Tworzenie aplikacji Django
@@ -40,7 +40,7 @@ python manage.py startapp blog
 Po utworzeniu aplikacji musisz dodać ją do pliku `settings.py` w sekcji `INSTALLED_APPS`:
 
 ```python
-# myproject/settings.py
+# projekt_django/settings.py
 
 INSTALLED_APPS = [
     # Inne aplikacje Django
