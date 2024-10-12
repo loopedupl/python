@@ -91,16 +91,16 @@ Aplikacje w Django to komponenty, które realizują konkretne funkcjonalności. 
 python manage.py startapp app_name
 ```
 
-My zamienimy `app_name` na nazwę naszej przykładowej aplikacji `author`.
+My zamienimy `app_name` na nazwę naszej przykładowej aplikacji `blog`.
 
 ---
 
 ## Krok 6: Struktura aplikacji
 
-Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `author`:
+Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `blog`:
 
 ```
-author/
+blog/
     migrations/
         __init__.py
     __init__.py
@@ -129,7 +129,7 @@ Aby dodać nowo utworzoną aplikację do projektu, otwórz plik `settings.py` i 
 ```python
 INSTALLED_APPS = [
     ...
-    'author',
+    'blog',
 ]
 ```
 
