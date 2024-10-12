@@ -1,155 +1,117 @@
-# Modele i migracje w Django
+# Tworzenie panelu administracyjnego w Django
 
----
+Django ma wbudowany panel administracyjny, który umożliwia zarządzanie danymi aplikacji bez konieczności pisania własnych interfejsów. W tym przewodniku pokażę, jak skonfigurować panel admina i jak dodawać modele, które można edytować w panelu.
 
-#### Spis treści
+## Wymagania wstępne
 
-1. [Tworzenie projektu Django](#1-tworzenie-projektu-django)
-2. [Tworzenie aplikacji Django](#2-tworzenie-aplikacji-django)
-3. [Definiowanie modeli](#3-definiowanie-modeli)
-4. [Tworzenie migracji](#4-tworzenie-migracji)
-5. [Zastosowanie migracji](#5-zastosowanie-migracji)
-6. [Praca z modelami w Django Shell](#6-praca-z-modelami-w-django-shell)
+Upewnij się, że masz zainstalowane:
 
----
+- Django (w wersji 3.0 lub nowszej)
+- Utworzony projekt Django
 
-### 1. Tworzenie projektu Django
+## Krok 1: Utwórz superużytkownika
 
-Zacznij od utworzenia nowego projektu Django. W terminalu wpisz poniższe komendy:
+Aby mieć dostęp do panelu administracyjnego, musisz utworzyć superużytkownika. Superużytkownik to konto, które ma pełny dostęp do zarządzania wszystkimi danymi w panelu administracyjnym.
+
+Aby utworzyć superużytkownika, w terminalu użyj polecenia:
 
 ```bash
-# Instalacja Django (jeśli nie masz go jeszcze zainstalowanego)
-pip install django
-
-# Tworzenie nowego projektu Django
-django-admin startproject projekt_django
-
-# Przejdź do katalogu projektu
-cd projekt_django
+python manage.py createsuperuser
 ```
 
-### 2. Tworzenie aplikacji Django
+Postępuj zgodnie z instrukcjami, podając nazwę użytkownika, adres e-mail oraz hasło.
 
-Teraz utwórz aplikację wewnątrz swojego projektu. Na potrzeby tej lekcji stworzymy aplikację o nazwie `blog`:
+## Krok 2: Dodaj aplikację do panelu administracyjnego
 
-```bash
-# Tworzenie aplikacji blog
-python manage.py startapp blog
-```
+Aby model był dostępny w panelu administracyjnym, musisz go zarejestrować. Otwórz plik `admin.py` w aplikacji, do której chcesz dodać model.
 
-Po utworzeniu aplikacji musisz dodać ją do pliku `settings.py` w sekcji `INSTALLED_APPS`:
+Na przykład, jeśli masz aplikację `myapp`, przejdź do `myapp/admin.py` i dodaj tam swój model:
 
 ```python
-# projekt_django/settings.py
+from django.contrib import admin
+from .models import MyModel
 
-INSTALLED_APPS = [
-    # Inne aplikacje Django
-    'blog',  # Dodaj aplikację blog do zainstalowanych aplikacji
-]
+admin.site.register(MyModel)
 ```
 
-### 3. Definiowanie modeli
+Zamień `MyModel` na nazwę swojego modelu.
 
-Przejdź teraz do pliku `models.py` w aplikacji `blog` i zdefiniuj dwa modele: `Author` oraz `Post`.
+## Krok 3: Migracja bazy danych
 
-```python
-# blog/models.py
-
-from django.db import models
-
-class Author(models.Model):
-    name = models.CharField(max_length=100)
-    bio = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-
-class Post(models.Model):
-    title = models.CharField(max_length=200)
-    content = models.TextField()
-    published_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    is_published = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.title
-```
-
-- **Author**: Reprezentuje autora postów. Przechowuje jego imię i nazwisko oraz opcjonalną biografię.
-- **Post**: Reprezentuje post na blogu, który ma tytuł, treść, datę publikacji i relację do autora.
-
-### 4. Tworzenie migracji
-
-Teraz musisz utworzyć migracje, aby Django mogło stworzyć tabele w bazie danych na podstawie zdefiniowanych modeli.
+Upewnij się, że wszystkie migracje są zastosowane, aby panel admina miał dostęp do aktualnych danych. Użyj poleceń:
 
 ```bash
-# Tworzenie migracji
 python manage.py makemigrations
-```
-
-Django wygeneruje plik migracyjny, który zawiera instrukcje dotyczące tworzenia tabel w bazie danych.
-
-### 5. Zastosowanie migracji
-
-Po utworzeniu migracji musisz je zastosować, aby tabele zostały utworzone w bazie danych.
-
-```bash
-# Zastosowanie migracji
 python manage.py migrate
 ```
 
-Django utworzy wszystkie niezbędne tabele w bazie danych, w tym tabele dla aplikacji `blog`.
+Te polecenia utworzą i zastosują migracje, które zaktualizują bazę danych.
 
-### 6. Praca z modelami w Django Shell
+## Krok 4: Dostęp do panelu administracyjnego
 
-Aby przetestować działanie modeli, możesz otworzyć Django shell i utworzyć kilka rekordów w bazie danych.
+Po zarejestrowaniu modelu i migracji bazy danych możesz uzyskać dostęp do panelu admina. Aby uruchomić serwer deweloperski, użyj polecenia:
 
 ```bash
-# Otwieranie Django shell
-python manage.py shell
+python manage.py runserver
 ```
 
-W Django shell wykonaj następujące kroki:
+Następnie otwórz przeglądarkę i przejdź pod adres:
 
-- **Importowanie modeli:**
+```
+http://127.0.0.1:8000/admin
+```
 
-  ```python
-  from blog.models import Author, Post
-  ```
+Zaloguj się, używając danych superużytkownika, które stworzyłeś wcześniej.
 
-- **Tworzenie autora:**
+## Krok 5: Konfiguracja modelu w panelu admina
 
-  ```python
-  author = Author.objects.create(name="Jan Kowalski", bio="Autor bloga o Django.")
-  ```
+Możesz spersonalizować sposób wyświetlania modeli w panelu administracyjnym. Aby to zrobić, zmodyfikuj plik `admin.py` i dodaj specjalną klasę `ModelAdmin`:
 
-- **Tworzenie posta:**
+```python
+from django.contrib import admin
+from .models import MyModel
 
-  ```python
-  post = Post.objects.create(
-      title="Jak działa Django?",
-      content="Django to wspaniałe narzędzie do budowania aplikacji webowych.",
-      author=author,
-      is_published=True
-  )
-  ```
+class MyModelAdmin(admin.ModelAdmin):
+    list_display = ('field1', 'field2', 'field3')  # Kolumny wyświetlane w panelu
+    search_fields = ('field1', 'field2')  # Pola, po których można wyszukiwać
+    list_filter = ('field3',)  # Dodanie filtrów w panelu bocznym
 
-- **Pobieranie wszystkich postów:**
+admin.site.register(MyModel, MyModelAdmin)
+```
 
-  ```python
-  all_posts = Post.objects.all()
-  print(all_posts)
-  ```
+Dostosuj `list_display`, `search_fields` i `list_filter` do swoich potrzeb, zamieniając `field1`, `field2`, itp. na rzeczywiste pola swojego modelu.
 
-- **Filtrowanie postów według autora:**
+## Krok 6: Dodanie kolejnych modeli
 
-  ```python
-  jan_posts = Post.objects.filter(author__name="Jan Kowalski")
-  print(jan_posts)
-  ```
+Jeśli chcesz dodać więcej modeli do panelu administracyjnego, powtórz te same kroki dla każdego z nich. Dodaj je do pliku `admin.py` i zarejestruj:
 
-### Podsumowanie
+```python
+from .models import AnotherModel
 
-W tej lekcji stworzyliśmy modele Django, utworzyliśmy migracje i zastosowaliśmy je w bazie danych. Następnie pracowaliśmy z danymi w Django Shell. Ten proces pozwala na łatwe tworzenie, modyfikowanie i pobieranie danych z bazy, używając ORM Django.
+admin.site.register(AnotherModel)
+```
+
+## Krok 7: Dodanie relacji między modelami
+
+Jeśli twoje modele są połączone relacjami (np. za pomocą klucza obcego), możesz skonfigurować te relacje w panelu admina, aby ułatwić zarządzanie. Na przykład, dla modeli połączonych relacją 1 do wielu:
+
+```python
+from django.contrib import admin
+from .models import ParentModel, ChildModel
+
+class ChildModelInline(admin.TabularInline):  # Inline dla modelu zależnego
+    model = ChildModel
+
+class ParentModelAdmin(admin.ModelAdmin):
+    inlines = [ChildModelInline]
+
+admin.site.register(ParentModel, ParentModelAdmin)
+```
+
+To umożliwia zarządzanie zależnymi modelami bezpośrednio w edycji głównego modelu.
+
+## Podsumowanie
+
+Z powodzeniem utworzyliśmy panel administracyjny w Django, dodaliśmy modele i skonfigurowaliśmy wyświetlanie danych. Panel administracyjny jest potężnym narzędziem do zarządzania danymi w aplikacji, a dzięki jego elastyczności możesz go dostosować do swoich potrzeb.
+
+Jeśli masz pytania, nie wahaj się ich zadać!
