@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'blog',
 ]
 
@@ -49,6 +50,25 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    # Domyślne uprawnienia: użytkownik nie musi być zalogowany
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+
+    # Filtrowanie na poziomie widoku (bez dodatkowych bibliotek)
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.OrderingFilter',  # Filtrowanie według kolejności
+        'rest_framework.filters.SearchFilter',  # Filtrowanie za pomocą wyszukiwania
+    ],
+
+    # Domyślna klasa paginacji: oparta na numerze strony
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+
+    # Ilość elementów na stronie
+    'PAGE_SIZE': 10,
+}
 
 ROOT_URLCONF = 'projekt_django.urls'
 
