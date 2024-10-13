@@ -54,6 +54,13 @@ REST_FRAMEWORK = {
 }
 ```
 
+### Co oznaczają poszczególne opcje?
+
+- **DEFAULT_PERMISSION_CLASSES**: Określa domyślne uprawnienia, tutaj nie wymagane jest zalogowanie.
+- **DEFAULT_FILTER_BACKENDS**: Ustawienia filtrowania, które umożliwiają sortowanie wyników (`OrderingFilter`) oraz wyszukiwanie (`SearchFilter`).
+- **DEFAULT_PAGINATION_CLASS**: Definiuje klasę paginacji, która domyślnie dzieli wyniki na strony.
+- **PAGE_SIZE**: Liczba elementów na stronę.
+
 ## Podsumowanie
 
 Gratulacje! Pomyślnie zainstalowałeś i skonfigurowałeś Django REST Framework w swoim projekcie. Teraz możesz rozszerzać swoją aplikację o dodatkowe funkcje API.
