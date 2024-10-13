@@ -1,106 +1,199 @@
-# Praca z serializerami w Django REST Framework
+# Tworzenie widoków API z Django REST Framework
 
-W tej lekcji skupimy się na pracy z serializerami w Django REST Framework (DRF). Serializery są kluczowym elementem w konwersji danych do formatu JSON. Dowiesz się, jak tworzyć różne typy serializerów i jak konfigurować ich właściwości.
+W tej lekcji nauczysz się, jak tworzyć widoki API z użyciem Django REST Framework (DRF), wykorzystując istniejące modele `Post` i `Author`. Skupimy się na tworzeniu widoków opartych na funkcjach (FBV), widoków opartych na klasach (CBV), oraz `ViewSet`. Pokażemy również, jak połączyć widoki z URL-ami, aby Twoje API było w pełni funkcjonalne.
 
-## Krok 1: Utworzenie modelu
+## Krok 1: Utworzenie serializera
 
-Upewnij się, że masz model, z którym będziesz pracować. Użyjmy prostego modelu `Post` jako przykładu:
+Najpierw musimy utworzyć serializery dla modeli `Post` i `Author`, które będą konwertować dane do i z formatu JSON.
 
-```python
-# blog/models.py
-from django.db import models
-
-class Post(models.Model):
-    title = models.CharField(max_length=200)
-    content = models.TextField()
-    published_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    is_published = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.title
-```
-
-## Krok 2: Tworzenie prostego serializera
-
-Zacznijmy od stworzenia prostego serializera dla modelu `Post`. Utwórz plik `serializers.py`, jeśli jeszcze go nie masz:
+Utwórz plik `serializers.py`, jeśli go jeszcze nie masz, i dodaj serializery dla obu modeli:
 
 ```python
 # blog/serializers.py
 from rest_framework import serializers
-from .models import Post
+from .models import Post, Author
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ['id', 'title', 'content', 'published_at']
-```
+        fields = '__all__'
 
-### Wyjaśnienie `class Meta`
-
-- **model**: Wskazuje model, z którym serializer będzie pracował. W tym przypadku to `Post`.
-- **fields**: Określa, które pola modelu mają być uwzględnione w serializacji. Możesz podać listę pól, które chcesz uwzględnić.
-
-## Krok 3: Użycie `__all__` w fields
-
-Możesz również użyć `__all__`, aby uwzględnić wszystkie pola modelu w serializacji:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = '__all__'  # Użycie __all__ do uwzględnienia wszystkich pól
-```
-
-## Krok 4: Użycie `exclude`
-
-Alternatywnie, możesz użyć opcji `exclude`, aby wykluczyć określone pola z serializacji. Na przykład, jeśli chcesz wykluczyć pole `published_at`:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        exclude = ['published_at']  # Wyklucza pole published_at
-```
-
-## Krok 5: Tworzenie zagnieżdżonego serializera
-
-Zagnieżdżone serializery pozwalają na serializację powiązanych modeli. Załóżmy, że masz model `Author`:
-
-```python
-# blog/models.py
-class Author(models.Model):
-    name = models.CharField(max_length=100)
-    bio = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-class Post(models.Model):
-    title = models.CharField(max_length=100)
-    content = models.TextField()
-    author = models.ForeignKey(Author, related_name='posts', on_delete=models.CASCADE)
-    published_at = models.DateTimeField(auto_now_add=True)
-```
-
-Teraz stwórz zagnieżdżony serializer dla `Author`:
-
-```python
-# blog/serializers.py
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
-        fields = ['id', 'name']
+        fields = '__all__'
+```
 
-class PostSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer()  # Zagnieżdżony serializer
+## Krok 2: Tworzenie widoków API (Function-Based Views)
 
-    class Meta:
-        model = Post
-        fields = ['id', 'title', 'content', 'published_at', 'author']
+Teraz utworzymy widoki API oparte na funkcjach (FBV) dla modelu `Post`. Te widoki będą obsługiwać standardowe operacje: listowanie, tworzenie, aktualizowanie i usuwanie postów.
+
+W pliku `views.py` dodaj następujące widoki:
+
+```python
+# blog/views.py
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Post
+from .serializers import PostSerializer
+
+@api_view(['GET', 'POST'])
+def post_list(request):
+    if request.method == 'GET':
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def post_detail(request, pk):
+    try:
+        post = Post.objects.get(pk=pk)
+    except Post.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = PostSerializer(post, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+## Krok 3: Tworzenie widoków API (Class-Based Views)
+
+Korzystanie z widoków opartych na klasach (CBV) upraszcza kod i pozwala lepiej organizować logikę widoku. Poniżej tworzymy widok listowania i tworzenia postów oraz widok szczegółowy dla modelu `Post` za pomocą `APIView`.
+
+Dodaj następujący kod do pliku `views.py`:
+
+```python
+# blog/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Post
+from .serializers import PostSerializer
+
+class PostList(APIView):
+    def get(self, request):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = PostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PostDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Post.objects.get(pk=pk)
+        except Post.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        post = self.get_object(pk)
+        serializer = PostSerializer(post, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        post = self.get_object(pk)
+        post.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+## Krok 4: Tworzenie widoków API (ViewSet)
+
+Widoki `ViewSet` są najbardziej elastycznym sposobem pracy z widokami w DRF. Łączą one wiele operacji w jednym widoku. Stwórzmy widok `ViewSet` dla modelu `Post`.
+
+```python
+# blog/views.py
+from rest_framework import viewsets
+from .models import Post
+from .serializers import PostSerializer
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+```
+
+## Krok 5: Mapowanie widoków do URL-i
+
+Teraz musimy połączyć nasze widoki z URL-ami. W pliku `urls.py` utwórz ścieżki dla każdego widoku.
+
+Najpierw dla widoków opartych na funkcjach (FBV):
+
+```python
+# projekt_django/urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('posts/', views.post_list),
+    path('posts/<int:pk>/', views.post_detail),
+]
+```
+
+Dla widoków opartych na klasach (CBV):
+
+```python
+# projekt_django/urls.py
+from django.urls import path
+from .views import PostList, PostDetail
+
+urlpatterns = [
+    path('posts/', PostList.as_view()),
+    path('posts/<int:pk>/', PostDetail.as_view()),
+]
+```
+
+Dla widoków `ViewSet`:
+
+```python
+# projekt_django/urls.py
+from rest_framework.routers import DefaultRouter
+from .views import PostViewSet
+
+router = DefaultRouter()
+router.register(r'posts', PostViewSet)
+
+urlpatterns = router.urls
+```
+
+## Krok 6: Uruchomienie serwera
+
+Na koniec uruchom serwer, aby sprawdzić, czy wszystko działa poprawnie:
+
+```bash
+python manage.py runserver
 ```
 
 ## Podsumowanie
 
-W tej lekcji dowiedziałeś się, jak tworzyć różne typy serializerów w Django REST Framework, używać właściwości `class Meta`, oraz korzystać z `fields`, `__all__` i `exclude`. Ponadto zobaczyłeś, jak tworzyć zagnieżdżone serializery. Serializery są kluczowym elementem w tworzeniu API i umożliwiają efektywne przetwarzanie danych w Twoich aplikacjach Django.
+W tej lekcji stworzyliśmy różne typy widoków API: oparte na funkcjach (FBV), oparte na klasach (CBV) oraz widoki `ViewSet` dla modelu `Post`. Dzięki tym przykładom jesteś teraz w stanie tworzyć elastyczne i skalowalne API z użyciem Django REST Framework.
