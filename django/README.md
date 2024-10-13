@@ -1,135 +1,79 @@
-# Walidacja danych oraz obsługa błędów w Django REST Framework
+# Testowanie manualne endpointów API
 
-W tej lekcji nauczysz się, jak walidować dane w Django REST Framework (DRF) oraz jak obsługiwać błędy walidacji, aby zapewnić użytkownikom przyjazne i zrozumiałe komunikaty o błędach. Walidacja danych jest kluczowa w procesie przetwarzania danych przesyłanych przez użytkowników.
+W tej lekcji nauczysz się, jak ręcznie testować endpointy API w aplikacji Django. Testowanie manualne jest ważnym krokiem w zapewnieniu, że Twoje API działa zgodnie z oczekiwaniami. Wykorzystamy narzędzia takie jak Postman oraz cURL, aby sprawdzić, jak działają różne endpointy.
 
-## Krok 1: Podstawowa walidacja w serializerze
+## Krok 1: Instalacja Postmana
 
-Django REST Framework automatycznie waliduje dane na poziomie pól w serializerze. Gdy tworzysz serializer, DRF zapewnia podstawową walidację dla zdefiniowanych pól.
+Postman to popularne narzędzie do testowania API. Możesz je pobrać i zainstalować ze strony [Postman](https://www.postman.com/downloads/). Po zainstalowaniu uruchom aplikację.
 
-Przykład prostego serializera z podstawową walidacją:
+## Krok 2: Uruchomienie serwera Django
 
-```python
-from rest_framework import serializers
-from .models import Post
+Upewnij się, że Twój serwer Django działa. Możesz to zrobić, wykonując poniższe polecenie w terminalu:
 
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
+```bash
+python manage.py runserver
 ```
 
-W tym przypadku DRF automatycznie zweryfikuje, czy pola `title` i `content` są obecne w przesyłanych danych.
+Domyślnie serwer uruchomi się na adresie `http://127.0.0.1:8000/`.
 
-## Krok 2: Walidacja na poziomie pola
+## Krok 3: Tworzenie nowego żądania w Postmanie
 
-Możesz dodać własne zasady walidacji na poziomie pola, definiując metodę `validate_<field_name>` w serializerze.
+1. Otwórz Postmana.
+2. Kliknij na przycisk `New` (Nowy) i wybierz `Request` (Żądanie).
+3. Nazwij swoje żądanie i przypisz je do nowego lub istniejącego kolekcjonera, a następnie kliknij `Save` (Zapisz).
 
-Przykład:
+## Krok 4: Ustawienie żądania
 
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
+1. Wybierz typ żądania (GET, POST, PUT, DELETE) z rozwijanej listy obok pola URL.
+2. Wprowadź adres URL swojego endpointu. Na przykład, jeśli testujesz endpoint do pobierania wszystkich postów, wprowadź:
 
-    def validate_title(self, value):
-        if len(value) < 5:
-            raise serializers.ValidationError("Tytuł musi mieć co najmniej 5 znaków.")
-        return value
+   ```
+   http://127.0.0.1:8000/api/posts/
+   ```
+
+## Krok 5: Dodawanie danych do żądania (dla POST/PUT)
+
+Jeśli wysyłasz dane (np. w żądaniu POST lub PUT), wykonaj poniższe kroki:
+
+1. Kliknij zakładkę `Body` (Treść) w Postmanie.
+2. Wybierz `raw` i następnie wybierz `JSON` z rozwijanej listy po prawej stronie.
+3. Wprowadź dane w formacie JSON. Na przykład:
+
+   ```json
+   {
+     "title": "Nowy post",
+     "content": "Treść nowego posta"
+   }
+   ```
+
+## Krok 6: Wysyłanie żądania
+
+1. Po skonfigurowaniu żądania kliknij przycisk `Send` (Wyślij).
+2. Postman wyśle żądanie do serwera, a odpowiedź pojawi się w dolnej części okna.
+
+## Krok 7: Analiza odpowiedzi
+
+- **Status odpowiedzi**: Sprawdź kod statusu HTTP. Kod `200` oznacza, że żądanie zakończyło się sukcesem, `201` oznacza, że zasób został stworzony, `404` oznacza, że zasób nie został znaleziony, a `500` oznacza błąd serwera.
+- **Treść odpowiedzi**: Zobacz treść odpowiedzi w zakładce `Body`. Powinieneś zobaczyć dane zwracane przez API.
+
+## Krok 8: Testowanie innych endpointów
+
+Powtórz kroki 3-7 dla innych endpointów API, które chcesz przetestować, zmieniając typ żądania i dane, jeśli to konieczne.
+
+## Krok 9: Testowanie za pomocą cURL (opcjonalnie)
+
+Jeśli wolisz testować API za pomocą terminala, możesz użyć cURL. Oto przykład żądania GET:
+
+```bash
+curl -X GET http://127.0.0.1:8000/api/posts/
 ```
 
-W tym przykładzie, jeśli `title` ma mniej niż 5 znaków, zostanie zgłoszony błąd walidacji.
+A oto przykład żądania POST:
 
-## Krok 3: Walidacja całego obiektu
-
-Możesz również walidować dane na poziomie całego obiektu, definiując metodę `validate` w serializerze.
-
-Przykład:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        if attrs['content'] == "":
-            raise serializers.ValidationError("Zawartość posta nie może być pusta.")
-        return attrs
+```bash
+curl -X POST http://127.0.0.1:8000/api/posts/ -H "Content-Type: application/json" -d '{"title": "Nowy post", "content": "Treść nowego posta"}'
 ```
-
-W tym przypadku, jeśli `content` jest pusty, walidacja zakończy się niepowodzeniem.
-
-## Krok 4: Użycie walidatorów
-
-Django REST Framework pozwala na użycie wbudowanych walidatorów, które mogą być używane w polach serializerów.
-
-Przykład:
-
-```python
-from rest_framework import serializers
-from django.core.validators import MinLengthValidator
-
-class PostSerializer(serializers.ModelSerializer):
-    title = serializers.CharField(validators=[MinLengthValidator(5)])
-
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-```
-
-W tym przypadku pole `title` musi mieć co najmniej 5 znaków, a walidator `MinLengthValidator` zapewnia tę funkcjonalność.
-
-## Krok 5: Walidacja z użyciem kontekstu
-
-Możesz używać kontekstu do walidacji, co pozwala na uwzględnienie dodatkowych informacji, takich jak inne pola lub status użytkownika.
-
-Przykład:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        user = self.context['request'].user
-        if user.is_authenticated and not user.has_perm('can_create_post'):
-            raise serializers.ValidationError("Nie masz uprawnień do tworzenia postów.")
-        return attrs
-```
-
-W tym przykładzie walidacja sprawdza, czy użytkownik ma odpowiednie uprawnienia do tworzenia postów.
-
-## Krok 6: Obsługa błędów walidacji
-
-Gdy walidacja się nie powiedzie, DRF automatycznie generuje odpowiedź z informacjami o błędach. Możesz dostosować te komunikaty, aby były bardziej przyjazne dla użytkownika.
-
-Przykład:
-
-```python
-from rest_framework import serializers
-
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        if 'title' not in attrs:
-            raise serializers.ValidationError({"title": "To pole jest wymagane."})
-        return attrs
-```
-
-## Najczęstsze błędy HTTP i ich znaczenie
-
-1. **400 Bad Request** - Żądanie nie może być przetworzone z powodu błędu klienta (np. niepoprawne dane wejściowe).
-2. **401 Unauthorized** - Użytkownik nie jest autoryzowany do wykonania żądanej akcji. Wymagana jest autoryzacja.
-3. **403 Forbidden** - Serwer rozumie żądanie, ale odmawia jego wykonania, ponieważ użytkownik nie ma odpowiednich uprawnień.
-4. **404 Not Found** - Żądany zasób nie został znaleziony. Może to być spowodowane tym, że zasób został usunięty lub adres URL jest niepoprawny.
-5. **405 Method Not Allowed** - Metoda żądania jest niedozwolona dla wskazanego zasobu. Na przykład, jeśli próbujesz użyć metody POST na zasobie, który obsługuje tylko GET.
-6. **500 Internal Server Error** - Serwer napotkał niespodziewany błąd i nie może zrealizować żądania. Może to być spowodowane błędem w kodzie aplikacji.
 
 ## Podsumowanie
 
-W tej lekcji nauczyłeś się, jak walidować dane w Django REST Framework oraz jak obsługiwać różne błędy, aby zapewnić użytkownikom jasne i pomocne komunikaty o błędach. Zrozumienie tych mechanizmów jest kluczowe dla tworzenia aplikacji API, które są zarówno funkcjonalne, jak i przyjazne dla użytkownika.
+W tej lekcji nauczyłeś się, jak ręcznie testować endpointy API w aplikacji Django. Wykorzystując Postmana lub cURL, możesz sprawdzić, czy Twoje API działa poprawnie i zgodnie z oczekiwaniami. Regularne testowanie jest kluczowe dla zapewnienia jakości i niezawodności Twojej aplikacji.

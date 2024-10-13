@@ -12,3 +12,8 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ['id', 'title', 'content', 'published_at', 'author']
+
+    def validate_title(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError("Tytuł musi mieć co najmniej 5 znaków.")
+        return value
