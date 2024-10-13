@@ -29,7 +29,7 @@ INSTALLED_APPS = [
 
 ## Krok 3: Podstawowa konfiguracja DRF
 
-Aby skonfigurować Django REST Framework, w pliku `settings.py` dodaj sekcję `REST_FRAMEWORK`. Możesz tutaj ustawić różne opcje, takie jak uwierzytelnianie i uprawnienia.
+Aby skonfigurować Django REST Framework, w pliku `settings.py` dodaj sekcję `REST_FRAMEWORK`. Możesz tutaj ustawić różne opcje, takie jak filtrowanie i uprawnienia.
 
 Poniżej znajduje się przykładowa konfiguracja:
 
