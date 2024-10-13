@@ -1,199 +1,135 @@
-# Tworzenie widoków API z Django REST Framework
+# Walidacja danych oraz obsługa błędów w Django REST Framework
 
-W tej lekcji nauczysz się, jak tworzyć widoki API z użyciem Django REST Framework (DRF), wykorzystując istniejące modele `Post` i `Author`. Skupimy się na tworzeniu widoków opartych na funkcjach (FBV), widoków opartych na klasach (CBV), oraz `ViewSet`. Pokażemy również, jak połączyć widoki z URL-ami, aby Twoje API było w pełni funkcjonalne.
+W tej lekcji nauczysz się, jak walidować dane w Django REST Framework (DRF) oraz jak obsługiwać błędy walidacji, aby zapewnić użytkownikom przyjazne i zrozumiałe komunikaty o błędach. Walidacja danych jest kluczowa w procesie przetwarzania danych przesyłanych przez użytkowników.
 
-## Krok 1: Utworzenie serializera
+## Krok 1: Podstawowa walidacja w serializerze
 
-Najpierw musimy utworzyć serializery dla modeli `Post` i `Author`, które będą konwertować dane do i z formatu JSON.
+Django REST Framework automatycznie waliduje dane na poziomie pól w serializerze. Gdy tworzysz serializer, DRF zapewnia podstawową walidację dla zdefiniowanych pól.
 
-Utwórz plik `serializers.py`, jeśli go jeszcze nie masz, i dodaj serializery dla obu modeli:
+Przykład prostego serializera z podstawową walidacją:
 
 ```python
-# blog/serializers.py
 from rest_framework import serializers
-from .models import Post, Author
+from .models import Post
 
 class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = '__all__'
+        fields = ['title', 'content']
+```
 
-class AuthorSerializer(serializers.ModelSerializer):
+W tym przypadku DRF automatycznie zweryfikuje, czy pola `title` i `content` są obecne w przesyłanych danych.
+
+## Krok 2: Walidacja na poziomie pola
+
+Możesz dodać własne zasady walidacji na poziomie pola, definiując metodę `validate_<field_name>` w serializerze.
+
+Przykład:
+
+```python
+class PostSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Author
-        fields = '__all__'
+        model = Post
+        fields = ['title', 'content']
+
+    def validate_title(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError("Tytuł musi mieć co najmniej 5 znaków.")
+        return value
 ```
 
-## Krok 2: Tworzenie widoków API (Function-Based Views)
+W tym przykładzie, jeśli `title` ma mniej niż 5 znaków, zostanie zgłoszony błąd walidacji.
 
-Teraz utworzymy widoki API oparte na funkcjach (FBV) dla modelu `Post`. Te widoki będą obsługiwać standardowe operacje: listowanie, tworzenie, aktualizowanie i usuwanie postów.
+## Krok 3: Walidacja całego obiektu
 
-W pliku `views.py` dodaj następujące widoki:
+Możesz również walidować dane na poziomie całego obiektu, definiując metodę `validate` w serializerze.
+
+Przykład:
 
 ```python
-# blog/views.py
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Post
-from .serializers import PostSerializer
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
 
-@api_view(['GET', 'POST'])
-def post_list(request):
-    if request.method == 'GET':
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-def post_detail(request, pk):
-    try:
-        post = Post.objects.get(pk=pk)
-    except Post.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
-
-    if request.method == 'GET':
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = PostSerializer(post, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def validate(self, attrs):
+        if attrs['content'] == "":
+            raise serializers.ValidationError("Zawartość posta nie może być pusta.")
+        return attrs
 ```
 
-## Krok 3: Tworzenie widoków API (Class-Based Views)
+W tym przypadku, jeśli `content` jest pusty, walidacja zakończy się niepowodzeniem.
 
-Korzystanie z widoków opartych na klasach (CBV) upraszcza kod i pozwala lepiej organizować logikę widoku. Poniżej tworzymy widok listowania i tworzenia postów oraz widok szczegółowy dla modelu `Post` za pomocą `APIView`.
+## Krok 4: Użycie walidatorów
 
-Dodaj następujący kod do pliku `views.py`:
+Django REST Framework pozwala na użycie wbudowanych walidatorów, które mogą być używane w polach serializerów.
+
+Przykład:
 
 ```python
-# blog/views.py
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Post
-from .serializers import PostSerializer
+from rest_framework import serializers
+from django.core.validators import MinLengthValidator
 
-class PostList(APIView):
-    def get(self, request):
-        posts = Post.objects.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data)
+class PostSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(validators=[MinLengthValidator(5)])
 
-    def post(self, request):
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class PostDetail(APIView):
-    def get_object(self, pk):
-        try:
-            return Post.objects.get(pk=pk)
-        except Post.DoesNotExist:
-            raise Http404
-
-    def get(self, request, pk):
-        post = self.get_object(pk)
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
-
-    def put(self, request, pk):
-        post = self.get_object(pk)
-        serializer = PostSerializer(post, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        post = self.get_object(pk)
-        post.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
 ```
 
-## Krok 4: Tworzenie widoków API (ViewSet)
+W tym przypadku pole `title` musi mieć co najmniej 5 znaków, a walidator `MinLengthValidator` zapewnia tę funkcjonalność.
 
-Widoki `ViewSet` są najbardziej elastycznym sposobem pracy z widokami w DRF. Łączą one wiele operacji w jednym widoku. Stwórzmy widok `ViewSet` dla modelu `Post`.
+## Krok 5: Walidacja z użyciem kontekstu
+
+Możesz używać kontekstu do walidacji, co pozwala na uwzględnienie dodatkowych informacji, takich jak inne pola lub status użytkownika.
+
+Przykład:
 
 ```python
-# blog/views.py
-from rest_framework import viewsets
-from .models import Post
-from .serializers import PostSerializer
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
 
-class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.all()
-    serializer_class = PostSerializer
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if user.is_authenticated and not user.has_perm('can_create_post'):
+            raise serializers.ValidationError("Nie masz uprawnień do tworzenia postów.")
+        return attrs
 ```
 
-## Krok 5: Mapowanie widoków do URL-i
+W tym przykładzie walidacja sprawdza, czy użytkownik ma odpowiednie uprawnienia do tworzenia postów.
 
-Teraz musimy połączyć nasze widoki z URL-ami. W pliku `urls.py` utwórz ścieżki dla każdego widoku.
+## Krok 6: Obsługa błędów walidacji
 
-Najpierw dla widoków opartych na funkcjach (FBV):
+Gdy walidacja się nie powiedzie, DRF automatycznie generuje odpowiedź z informacjami o błędach. Możesz dostosować te komunikaty, aby były bardziej przyjazne dla użytkownika.
+
+Przykład:
 
 ```python
-# projekt_django/urls.py
-from django.urls import path
-from . import views
+from rest_framework import serializers
 
-urlpatterns = [
-    path('posts/', views.post_list),
-    path('posts/<int:pk>/', views.post_detail),
-]
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ['title', 'content']
+
+    def validate(self, attrs):
+        if 'title' not in attrs:
+            raise serializers.ValidationError({"title": "To pole jest wymagane."})
+        return attrs
 ```
 
-Dla widoków opartych na klasach (CBV):
+## Najczęstsze błędy HTTP i ich znaczenie
 
-```python
-# projekt_django/urls.py
-from django.urls import path
-from .views import PostList, PostDetail
-
-urlpatterns = [
-    path('posts/', PostList.as_view()),
-    path('posts/<int:pk>/', PostDetail.as_view()),
-]
-```
-
-Dla widoków `ViewSet`:
-
-```python
-# projekt_django/urls.py
-from rest_framework.routers import DefaultRouter
-from .views import PostViewSet
-
-router = DefaultRouter()
-router.register(r'posts', PostViewSet)
-
-urlpatterns = router.urls
-```
-
-## Krok 6: Uruchomienie serwera
-
-Na koniec uruchom serwer, aby sprawdzić, czy wszystko działa poprawnie:
-
-```bash
-python manage.py runserver
-```
+1. **400 Bad Request** - Żądanie nie może być przetworzone z powodu błędu klienta (np. niepoprawne dane wejściowe).
+2. **401 Unauthorized** - Użytkownik nie jest autoryzowany do wykonania żądanej akcji. Wymagana jest autoryzacja.
+3. **403 Forbidden** - Serwer rozumie żądanie, ale odmawia jego wykonania, ponieważ użytkownik nie ma odpowiednich uprawnień.
+4. **404 Not Found** - Żądany zasób nie został znaleziony. Może to być spowodowane tym, że zasób został usunięty lub adres URL jest niepoprawny.
+5. **405 Method Not Allowed** - Metoda żądania jest niedozwolona dla wskazanego zasobu. Na przykład, jeśli próbujesz użyć metody POST na zasobie, który obsługuje tylko GET.
+6. **500 Internal Server Error** - Serwer napotkał niespodziewany błąd i nie może zrealizować żądania. Może to być spowodowane błędem w kodzie aplikacji.
 
 ## Podsumowanie
 
-W tej lekcji stworzyliśmy różne typy widoków API: oparte na funkcjach (FBV), oparte na klasach (CBV) oraz widoki `ViewSet` dla modelu `Post`. Dzięki tym przykładom jesteś teraz w stanie tworzyć elastyczne i skalowalne API z użyciem Django REST Framework.
+W tej lekcji nauczyłeś się, jak walidować dane w Django REST Framework oraz jak obsługiwać różne błędy, aby zapewnić użytkownikom jasne i pomocne komunikaty o błędach. Zrozumienie tych mechanizmów jest kluczowe dla tworzenia aplikacji API, które są zarówno funkcjonalne, jak i przyjazne dla użytkownika.
