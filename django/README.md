@@ -1,79 +1,116 @@
-# Testowanie manualne endpointów API
+# Testowanie automatyczne endpointów API
 
-W tej lekcji nauczysz się, jak ręcznie testować endpointy API w aplikacji Django. Testowanie manualne jest ważnym krokiem w zapewnieniu, że Twoje API działa zgodnie z oczekiwaniami. Wykorzystamy narzędzia takie jak Postman oraz cURL, aby sprawdzić, jak działają różne endpointy.
+W tej lekcji nauczysz się, jak tworzyć testy automatyczne dla endpointów API w aplikacji Django. Testy automatyczne pozwalają na szybkie i efektywne sprawdzanie, czy Twoje API działa zgodnie z oczekiwaniami oraz pomagają w identyfikacji błędów.
 
-## Krok 1: Instalacja Postmana
+## Krok 1: Utworzenie pliku testowego
 
-Postman to popularne narzędzie do testowania API. Możesz je pobrać i zainstalować ze strony [Postman](https://www.postman.com/downloads/). Po zainstalowaniu uruchom aplikację.
+1. Przejdź do folderu swojej aplikacji Django.
+2. Utwórz nowy plik o nazwie `tests.py` w katalogu aplikacji, jeśli jeszcze go nie masz.
 
-## Krok 2: Uruchomienie serwera Django
+## Krok 2: Importowanie niezbędnych modułów
 
-Upewnij się, że Twój serwer Django działa. Możesz to zrobić, wykonując poniższe polecenie w terminalu:
+Otwórz plik `tests.py` i dodaj następujące importy:
 
-```bash
-python manage.py runserver
+```python
+from rest_framework import status
+from rest_framework.test import APITestCase
+from .models import Author, Post
 ```
 
-Domyślnie serwer uruchomi się na adresie `http://127.0.0.1:8000/`.
+## Krok 3: Utworzenie klasy testowej
 
-## Krok 3: Tworzenie nowego żądania w Postmanie
+Utwórz klasę testową, która będzie dziedziczyć po `APITestCase`. Wewnątrz klasy możesz zdefiniować metody testowe.
 
-1. Otwórz Postmana.
-2. Kliknij na przycisk `New` (Nowy) i wybierz `Request` (Żądanie).
-3. Nazwij swoje żądanie i przypisz je do nowego lub istniejącego kolekcjonera, a następnie kliknij `Save` (Zapisz).
-
-## Krok 4: Ustawienie żądania
-
-1. Wybierz typ żądania (GET, POST, PUT, DELETE) z rozwijanej listy obok pola URL.
-2. Wprowadź adres URL swojego endpointu. Na przykład, jeśli testujesz endpoint do pobierania wszystkich postów, wprowadź:
-
-   ```
-   http://127.0.0.1:8000/api/posts/
-   ```
-
-## Krok 5: Dodawanie danych do żądania (dla POST/PUT)
-
-Jeśli wysyłasz dane (np. w żądaniu POST lub PUT), wykonaj poniższe kroki:
-
-1. Kliknij zakładkę `Body` (Treść) w Postmanie.
-2. Wybierz `raw` i następnie wybierz `JSON` z rozwijanej listy po prawej stronie.
-3. Wprowadź dane w formacie JSON. Na przykład:
-
-   ```json
-   {
-     "title": "Nowy post",
-     "content": "Treść nowego posta"
-   }
-   ```
-
-## Krok 6: Wysyłanie żądania
-
-1. Po skonfigurowaniu żądania kliknij przycisk `Send` (Wyślij).
-2. Postman wyśle żądanie do serwera, a odpowiedź pojawi się w dolnej części okna.
-
-## Krok 7: Analiza odpowiedzi
-
-- **Status odpowiedzi**: Sprawdź kod statusu HTTP. Kod `200` oznacza, że żądanie zakończyło się sukcesem, `201` oznacza, że zasób został stworzony, `404` oznacza, że zasób nie został znaleziony, a `500` oznacza błąd serwera.
-- **Treść odpowiedzi**: Zobacz treść odpowiedzi w zakładce `Body`. Powinieneś zobaczyć dane zwracane przez API.
-
-## Krok 8: Testowanie innych endpointów
-
-Powtórz kroki 3-7 dla innych endpointów API, które chcesz przetestować, zmieniając typ żądania i dane, jeśli to konieczne.
-
-## Krok 9: Testowanie za pomocą cURL (opcjonalnie)
-
-Jeśli wolisz testować API za pomocą terminala, możesz użyć cURL. Oto przykład żądania GET:
-
-```bash
-curl -X GET http://127.0.0.1:8000/api/posts/
+```python
+class PostAPITestCase(APITestCase):
+    def setUp(self):
+        self.url = "/posts/"
+        # Tworzymy autora
+        self.author = Author.objects.create(name="Test Author", bio="Test bio")
+        # Tworzymy post
+        self.post = Post.objects.create(title="Test Post", content="Test content", author=self.author)
 ```
 
-A oto przykład żądania POST:
+## Krok 4: Testowanie endpointu GET
+
+Dodaj metodę testową, aby sprawdzić, czy endpoint GET dla wszystkich postów działa poprawnie.
+
+```python
+    def test_get_post_list(self):
+        """Testowanie pobierania listy postów"""
+        response = self.client.get(self.url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Sprawdzamy, czy jeden post jest zwrócony
+        self.assertEqual(len(response.data['results']), 1)
+
+    def test_get_post_detail(self):
+        """Testowanie pobierania szczegółów posta"""
+        response = self.client.get(f"{self.url}{self.post.pk}/", format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], self.post.title)
+```
+
+## Krok 5: Testowanie endpointu POST
+
+Dodaj metodę testową, aby sprawdzić, czy endpoint POST do tworzenia nowego posta działa poprawnie.
+
+```python
+    def test_create_post(self):
+        """Testowanie tworzenia nowego posta"""
+        data = {
+            'title': 'New Post',
+            'content': 'Content for new post',
+            'author': {'id': self.author.id, 'name': self.author.name},
+            'is_published': False
+        }
+        response = self.client.post(self.url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Post.objects.count(), 2)
+        self.assertEqual(Post.objects.get(id=response.data['id']).title, 'New Post')
+```
+
+## Krok 6: Testowanie endpointu PUT
+
+Dodaj metodę testową do aktualizacji istniejącego posta.
+
+```python
+    def test_update_post(self):
+        """Testowanie aktualizacji posta"""
+        data = {
+            'title': 'Updated Title',
+            'content': 'Updated content',
+            'author': {'id': self.author.id, 'name': self.author.name},
+            'is_published': True
+        }
+        response = self.client.put(f"{self.url}{self.post.pk}/", data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.title, 'Updated Title')
+```
+
+## Krok 7: Testowanie endpointu DELETE
+
+Dodaj metodę testową do usunięcia istniejącego posta.
+
+```python
+    def test_delete_post(self):
+        """Testowanie usuwania posta"""
+        response = self.client.delete(f"{self.url}{self.post.pk}/", format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Post.objects.count(), 0)
+```
+
+## Krok 8: Uruchamianie testów
+
+Aby uruchomić testy, przejdź do terminala i wpisz poniższe polecenie:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/posts/ -H "Content-Type: application/json" -d '{"title": "Nowy post", "content": "Treść nowego posta"}'
+python manage.py test
 ```
+
+Django wykona wszystkie testy zdefiniowane w klasach testowych i wyświetli wyniki w terminalu.
 
 ## Podsumowanie
 
-W tej lekcji nauczyłeś się, jak ręcznie testować endpointy API w aplikacji Django. Wykorzystując Postmana lub cURL, możesz sprawdzić, czy Twoje API działa poprawnie i zgodnie z oczekiwaniami. Regularne testowanie jest kluczowe dla zapewnienia jakości i niezawodności Twojej aplikacji.
+W tej lekcji nauczyłeś się, jak automatyzować testowanie endpointów API w Django. Dzięki zastosowaniu zestawów testowych i asercji możesz skutecznie weryfikować funkcjonalność API, co znacznie zwiększa efektywność procesu deweloperskiego oraz zapewnia stabilność aplikacji.
