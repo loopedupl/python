@@ -1,201 +1,116 @@
-# Konfiguracja bazy danych w Django
+# Zarządzanie plikami statycznymi i mediami w Django
 
-## Spis treści
-
-1. [Wprowadzenie](#1-wprowadzenie)
-2. [Wybór bazy danych](#2-wybór-bazy-danych)
-3. [Instalacja bazy danych](#3-instalacja-bazy-danych)
-4. [Instalacja biblioteki bazy danych](#4-instalacja-biblioteki-bazy-danych)
-5. [Konfiguracja ustawień bazy danych](#5-konfiguracja-ustawień-bazy-danych)
-6. [Podsumowanie](#6-podsumowanie)
+W tej lekcji nauczysz się, jak zarządzać plikami statycznymi (np. CSS, JavaScript, obrazki) oraz plikami medialnymi (uploadowane przez użytkowników) w projekcie Django. Skonfigurujemy plik `settings.py`, dodamy ścieżki do plików i zrozumiemy różnice między nimi.
 
 ---
 
-## 1. Wprowadzenie
+## Krok 1: Zrozumienie plików statycznych i mediów
 
-Django obsługuje wiele różnych baz danych, w tym SQLite, PostgreSQL, MySQL i inne. W tym przewodniku omówimy, jak skonfigurować bazę danych w projekcie Django.
-
----
-
-## 2. Wybór bazy danych
-
-Domyślną bazą danych w Django jest SQLite, która jest łatwa w użyciu i nie wymaga dodatkowej konfiguracji. Jeśli jednak potrzebujesz bardziej zaawansowanej bazy danych, możesz wybrać PostgreSQL lub MySQL. Upewnij się, że masz zainstalowaną odpowiednią bazę danych na swoim systemie.
+1. **Pliki statyczne** – to pliki, które nie zmieniają się dynamicznie, jak pliki CSS, JavaScript czy obrazy wykorzystywane w szablonach. Są one dostarczane bezpośrednio do przeglądarki.
+2. **Pliki medialne** – to pliki, które są uploadowane przez użytkowników, takie jak zdjęcia profilowe, dokumenty czy inne pliki.
 
 ---
 
-## 3. Instalacja bazy danych
+## Krok 2: Konfiguracja plików statycznych
 
-### PostgreSQL
+1. **STATIC_URL**: W pliku `settings.py` ustaw ścieżkę URL dla plików statycznych. Django będzie używać tej ścieżki do serwowania plików.
 
-#### Krok 1: Zainstaluj PostgreSQL
+   ```python
+   STATIC_URL = '/static/'
+   ```
 
-- **Windows**: Możesz pobrać instalator z [oficjalnej strony PostgreSQL](https://www.postgresql.org/download/windows/).
-- **macOS**: Użyj Homebrew:
+2. **STATIC_ROOT**: W przypadku wdrażania aplikacji na produkcji, wszystkie pliki statyczne powinny zostać zebrane w jedno miejsce. Skonfiguruj `STATIC_ROOT` do katalogu, w którym będą przechowywane zebrane pliki.
 
-  ```bash
-  brew install postgresql
-  ```
+   ```python
+   STATIC_ROOT = BASE_DIR / 'static'
+   ```
 
-- **Linux**: Użyj menedżera pakietów (np. `apt` dla Debiana/Ubuntu):
-
-  ```bash
-  sudo apt update
-  sudo apt install postgresql postgresql-contrib
-  ```
-
-#### Krok 2: Utwórz bazę danych i użytkownika
-
-Po zainstalowaniu PostgreSQL, uruchom terminal i wykonaj następujące polecenia, aby utworzyć bazę danych i użytkownika:
-
-1. Uruchom konsolę PostgreSQL:
+3. **Tworzenie katalogu na pliki statyczne**:
+   W głównym katalogu projektu utwórz folder `static`:
 
    ```bash
-   psql -U postgres
+   mkdir static
    ```
 
-2. Utwórz nowego użytkownika:
-
-   ```sql
-   CREATE USER nazwa_użytkownika WITH PASSWORD 'twoje_hasło';
+4. **Dodanie plików statycznych**:
+   Umieść swoje pliki CSS, JavaScript i obrazy w odpowiednich podkatalogach w folderze `static`. Na przykład:
+   ```
+   static/
+       css/
+           style.css
+       js/
+           script.js
+       images/
+           logo.png
    ```
 
-3. Utwórz bazę danych:
+---
 
-   ```sql
-   CREATE DATABASE nazwa_bazy_danych OWNER nazwa_użytkownika;
-   ```
+## Krok 3: Serwowanie plików statycznych
 
-4. Przyznaj uprawnienia:
+1. **W czasie dewelopmentu**:
+   Django automatycznie serwuje pliki statyczne podczas pracy w trybie deweloperskim (DEBUG=True).
 
-   ```sql
-   GRANT ALL PRIVILEGES ON DATABASE nazwa_bazy_danych TO nazwa_użytkownika;
-   ```
-
-5. Wyjdź z konsoli PostgreSQL:
-
-   ```sql
-   \q
-   ```
-
-### MySQL
-
-#### Krok 1: Zainstaluj MySQL
-
-- **Windows**: Możesz pobrać instalator z [oficjalnej strony MySQL](https://dev.mysql.com/downloads/installer/).
-- **macOS**: Użyj Homebrew:
-
-  ```bash
-  brew install mysql
-  ```
-
-- **Linux**: Użyj menedżera pakietów (np. `apt` dla Debiana/Ubuntu):
-
-  ```bash
-  sudo apt update
-  sudo apt install mysql-server
-  ```
-
-#### Krok 2: Utwórz bazę danych i użytkownika
-
-Po zainstalowaniu MySQL, uruchom terminal i wykonaj następujące polecenia, aby utworzyć bazę danych i użytkownika:
-
-1. Uruchom konsolę MySQL:
-
+2. **Na produkcji**:
+   Po wdrożeniu aplikacji na serwerze produkcyjnym, użyj komendy `collectstatic`, aby zebrać wszystkie pliki statyczne w jednym katalogu:
    ```bash
-   sudo mysql -u root -p
+   python manage.py collectstatic
+   ```
+   Pliki zostaną przeniesione do katalogu `STATIC_ROOT`.
+
+---
+
+## Krok 4: Konfiguracja plików medialnych
+
+1. **MEDIA_URL**: Określa URL, pod którym dostępne będą pliki uploadowane przez użytkowników.
+
+   ```python
+   MEDIA_URL = '/media/'
    ```
 
-2. Utwórz nowego użytkownika:
+2. **MEDIA_ROOT**: Określa katalog, w którym będą przechowywane pliki uploadowane przez użytkowników. Tworzymy katalog `media/` w głównym katalogu projektu.
 
-   ```sql
-   CREATE USER 'nazwa_użytkownika'@'localhost' IDENTIFIED BY 'twoje_hasło';
+   ```python
+   MEDIA_ROOT = BASE_DIR / 'media'
    ```
 
-3. Utwórz bazę danych:
-
-   ```sql
-   CREATE DATABASE nazwa_bazy_danych;
+3. **Tworzenie katalogu na pliki medialne**:
+   Utwórz folder `media` w głównym katalogu projektu:
+   ```bash
+   mkdir media
    ```
 
-4. Przyznaj uprawnienia:
+---
 
-   ```sql
-   GRANT ALL PRIVILEGES ON nazwa_bazy_danych.* TO 'nazwa_użytkownika'@'localhost';
+## Krok 5: Ustawienie URL dla plików statycznych i mediów
+
+1. Aby móc serwować pliki statyczne i media w trybie deweloperskim, musisz zaktualizować plik `urls.py` projektu.
+
+2. **Edytuj plik `urls.py`**:
+   Dodaj obsługę dla plików statycznych i mediów:
+
+   ```python
+   from django.conf import settings
+   from django.conf.urls.static import static
+
+   urlpatterns = [
+       # inne ścieżki
+   ]
+
+   if settings.DEBUG:
+       urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+       urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
    ```
 
-5. Wyjdź z konsoli MySQL:
+---
 
-   ```sql
-   EXIT;
-   ```
+## Krok 6: Praca z plikami na produkcji
 
-## 4. Instalacja biblioteki bazy danych
+1. Na produkcji powinieneś używać serwera takiego jak Nginx lub S3 (dla plików mediów) do serwowania plików statycznych i mediów.
+2. Pliki statyczne i media na serwerze produkcyjnym nie są serwowane przez Django. Skorzystaj z dedykowanego rozwiązania jak Nginx, aby serwować te pliki bezpośrednio.
 
-### Krok 1: Zainstaluj odpowiednią bibliotekę
+---
 
-W zależności od wybranej bazy danych, będziesz musiał zainstalować odpowiednią bibliotekę. Oto przykłady:
+## Krok 7: Podsumowanie
 
-- Dla **PostgreSQL**:
-
-  ```bash
-  pip install psycopg2
-  ```
-
-- Dla **MySQL**:
-
-  ```bash
-  pip install mysqlclient
-  ```
-
-- Dla **SQLite** (nie wymaga instalacji, jest wbudowana w Pythona).
-
-## 5. Konfiguracja ustawień bazy danych
-
-### Krok 1: Edytuj plik `settings.py`
-
-Otwórz plik `settings.py`, który znajduje się w folderze twojego projektu. W sekcji `DATABASES` skonfiguruj ustawienia bazy danych. Oto przykładowa konfiguracja dla różnych baz danych:
-
-**Dla PostgreSQL:**
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'nazwa_bazy_danych',
-        'USER': 'nazwa_użytkownika',
-        'PASSWORD': 'twoje_hasło',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-```
-
-**Dla MySQL:**
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'nazwa_bazy_danych',
-        'USER': 'nazwa_użytkownika',
-        'PASSWORD': 'twoje_hasło',
-        'HOST': 'localhost',
-        'PORT': '3306',
-    }
-}
-```
-
-**Dla SQLite (domyślna konfiguracja):**
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / "db.sqlite3",
-    }
-}
-```
-
-## 6. Podsumowanie
-
-W tej lekcji nauczyłeś się, jak skonfigurować bazę danych w projekcie Django, w tym jak zainstalować bazę danych, utworzyć użytkownika oraz bazę danych, zainstalować potrzebne biblioteki oraz skonfigurować ustawienia w pliku `settings.py`. Teraz możesz zaczynać pracę z bazą danych w swojej aplikacji Django!
+Zarządzanie plikami statycznymi i mediami w Django wymaga odpowiedniej konfiguracji, aby serwowanie plików przebiegało bezproblemowo. Pliki statyczne są używane do wyświetlania elementów UI, takich jak style i skrypty, a pliki media obsługują treści przesyłane przez użytkowników.
