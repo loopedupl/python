@@ -1,135 +1,209 @@
-# Walidacja danych oraz obsługa błędów w Django REST Framework
+# Serializacja złożonych struktur danych w Django REST Framework
 
-W tej lekcji nauczysz się, jak walidować dane w Django REST Framework (DRF) oraz jak obsługiwać błędy walidacji, aby zapewnić użytkownikom przyjazne i zrozumiałe komunikaty o błędach. Walidacja danych jest kluczowa w procesie przetwarzania danych przesyłanych przez użytkowników.
+W tej lekcji omówimy serializację złożonych modeli i relacji między nimi. Dowiesz się, jak radzić sobie z relacjami jeden-do-wielu oraz wiele-do-wielu, co jest często spotykane w aplikacjach.
 
-## Krok 1: Podstawowa walidacja w serializerze
+## Krok 1: Przygotowanie modeli z relacjami
 
-Django REST Framework automatycznie waliduje dane na poziomie pól w serializerze. Gdy tworzysz serializer, DRF zapewnia podstawową walidację dla zdefiniowanych pól.
+Zaczniemy od stworzenia dwóch modeli, które będą miały relację typu **ForeignKey** (jeden-do-wielu) oraz **ManyToMany** (wiele-do-wielu). Wykorzystamy model autora (Author) oraz postów (Post), aby zademonstrować relację jeden-do-wielu, oraz kategorię (Category), aby pokazać relację wiele-do-wielu.
 
-Przykład prostego serializera z podstawową walidacją:
+### Przykładowe modele
+
+```python
+from django.db import models
+
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+    bio = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+class Category(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    author = models.ForeignKey(Author, related_name='posts', on_delete=models.CASCADE)
+    categories = models.ManyToManyField(Category, related_name='posts')
+
+    def __str__(self):
+        return self.title
+```
+
+- Model `Author` reprezentuje autora, który może mieć wiele postów.
+- Model `Post` jest powiązany z autorem poprzez **ForeignKey**, a z kategoriami poprzez **ManyToManyField**.
+
+## Krok 2: Zrozumienie relacji między modelami
+
+### Relacja `ForeignKey` – jeden-do-wielu
+
+Relacja `ForeignKey` służy do łączenia dwóch modeli w taki sposób, że jeden obiekt może być powiązany z wieloma innymi. Na przykład, **Autor** może mieć wiele **Postów**, ale każdy **Post** jest przypisany tylko do jednego **Autora**.
+
+```python
+class Author(models.Model):
+    name = models.CharField(max_length=100)
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
+```
+
+W tym przypadku każdy post może być powiązany z jednym autorem, ale autor może mieć wiele postów.
+
+### Relacja `ManyToMany` – wiele-do-wielu
+
+Relacja `ManyToMany` umożliwia łączenie dwóch modeli, w których każdy obiekt z jednego modelu może być powiązany z wieloma obiektami z drugiego modelu, i na odwrót. Na przykład, **Kategoria** może być przypisana do wielu **Postów**, a każdy **Post** może mieć wiele **Kategorii**.
+
+```python
+class Category(models.Model):
+    name = models.CharField(max_length=50)
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    categories = models.ManyToManyField(Category)
+```
+
+Tutaj, jeden post może mieć wiele kategorii, a jedna kategoria może być przypisana do wielu postów.
+
+---
+
+## Krok 3: Serializacja relacji złożonych w DRF
+
+### Serializacja `ForeignKey` (jeden-do-wielu)
+
+Aby serializować relację `ForeignKey`, musimy zagnieździć jeden serializer w drugim. Przykład serializera dla modeli **Author** i **Post** wygląda tak:
 
 ```python
 from rest_framework import serializers
+from .models import Author, Post
+
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = ['id', 'name']
+
+class PostSerializer(serializers.ModelSerializer):
+    author = AuthorSerializer()  # Zagnieżdżony serializer dla relacji jeden-do-wielu
+
+    class Meta:
+        model = Post
+        fields = ['id', 'title', 'author']
+```
+
+W ten sposób, gdy serializujemy post, automatycznie dodawane są dane o autorze.
+
+### Serializacja `ManyToMany` (wiele-do-wielu)
+
+Dla relacji `ManyToMany`, także używamy zagnieżdżonych serializerów. Musimy jednak uwzględnić, że będzie zwracana lista powiązanych obiektów. W tym celu stosujemy argument `many=True` w serializerze.
+
+```python
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name']
+
+class PostSerializer(serializers.ModelSerializer):
+    categories = CategorySerializer(many=True)  # Serializacja listy powiązanych kategorii
+
+    class Meta:
+        model = Post
+        fields = ['id', 'title', 'categories']
+```
+
+Dzięki temu możemy serializować wiele kategorii przypisanych do jednego posta.
+
+---
+
+## Krok 4: Zrozumienie `many=True`
+
+Argument `many=True` w Django REST Framework mówi serializerowi, że ma do czynienia z **listą obiektów**. Jest to niezbędne, gdy mamy relację jeden-do-wielu lub wiele-do-wielu, i chcemy serializować więcej niż jeden obiekt.
+
+Przykład:
+
+```python
+# Serializacja jednej instancji
+category = Category.objects.first()
+serializer = CategorySerializer(category)
+print(serializer.data)  # Zwróci dane jednej kategorii
+
+# Serializacja wielu instancji
+categories = Category.objects.all()
+serializer = CategorySerializer(categories, many=True)
+print(serializer.data)  # Zwróci listę danych wielu kategorii
+```
+
+W przypadku relacji złożonych, gdy mamy wiele powiązanych obiektów (np. lista kategorii w poście), argument `many=True` informuje serializer, aby zserializował wszystkie obiekty, zamiast jednego.
+
+---
+
+## Krok 5: Serializacja listy postów z autorami i kategoriami
+
+Aby przetestować serializację, dodaj widok, który zwróci listę postów z pełnymi danymi autorów oraz kategorii.
+
+### Przykładowy widok
+
+```python
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from .models import Post
+from .serializers import PostSerializer
 
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
+class PostListView(APIView):
+    def get(self, request):
+        posts = Post.objects.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data)
 ```
 
-W tym przypadku DRF automatycznie zweryfikuje, czy pola `title` i `content` są obecne w przesyłanych danych.
+## Krok 6: Testowanie relacji
 
-## Krok 2: Walidacja na poziomie pola
+Po skonfigurowaniu widoku uruchom serwer Django i odwiedź endpoint (np. `/posts/`). Powinieneś zobaczyć listę postów z danymi o autorach oraz kategoriach, np.:
 
-Możesz dodać własne zasady walidacji na poziomie pola, definiując metodę `validate_<field_name>` w serializerze.
-
-Przykład:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate_title(self, value):
-        if len(value) < 5:
-            raise serializers.ValidationError("Tytuł musi mieć co najmniej 5 znaków.")
-        return value
+```json
+[
+  {
+    "id": 1,
+    "title": "Post 1",
+    "content": "Treść posta 1",
+    "author": {
+      "id": 1,
+      "name": "Author 1",
+      "bio": "Biografia autora 1"
+    },
+    "categories": [
+      {
+        "id": 1,
+        "name": "Kategoria 1"
+      },
+      {
+        "id": 2,
+        "name": "Kategoria 2"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Post 2",
+    "content": "Treść posta 2",
+    "author": {
+      "id": 2,
+      "name": "Author 2",
+      "bio": "Biografia autora 2"
+    },
+    "categories": [
+      {
+        "id": 1,
+        "name": "Kategoria 1"
+      }
+    ]
+  }
+]
 ```
-
-W tym przykładzie, jeśli `title` ma mniej niż 5 znaków, zostanie zgłoszony błąd walidacji.
-
-## Krok 3: Walidacja całego obiektu
-
-Możesz również walidować dane na poziomie całego obiektu, definiując metodę `validate` w serializerze.
-
-Przykład:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        if attrs['content'] == "":
-            raise serializers.ValidationError("Zawartość posta nie może być pusta.")
-        return attrs
-```
-
-W tym przypadku, jeśli `content` jest pusty, walidacja zakończy się niepowodzeniem.
-
-## Krok 4: Użycie walidatorów
-
-Django REST Framework pozwala na użycie wbudowanych walidatorów, które mogą być używane w polach serializerów.
-
-Przykład:
-
-```python
-from rest_framework import serializers
-from django.core.validators import MinLengthValidator
-
-class PostSerializer(serializers.ModelSerializer):
-    title = serializers.CharField(validators=[MinLengthValidator(5)])
-
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-```
-
-W tym przypadku pole `title` musi mieć co najmniej 5 znaków, a walidator `MinLengthValidator` zapewnia tę funkcjonalność.
-
-## Krok 5: Walidacja z użyciem kontekstu
-
-Możesz używać kontekstu do walidacji, co pozwala na uwzględnienie dodatkowych informacji, takich jak inne pola lub status użytkownika.
-
-Przykład:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        user = self.context['request'].user
-        if user.is_authenticated and not user.has_perm('can_create_post'):
-            raise serializers.ValidationError("Nie masz uprawnień do tworzenia postów.")
-        return attrs
-```
-
-W tym przykładzie walidacja sprawdza, czy użytkownik ma odpowiednie uprawnienia do tworzenia postów.
-
-## Krok 6: Obsługa błędów walidacji
-
-Gdy walidacja się nie powiedzie, DRF automatycznie generuje odpowiedź z informacjami o błędach. Możesz dostosować te komunikaty, aby były bardziej przyjazne dla użytkownika.
-
-Przykład:
-
-```python
-from rest_framework import serializers
-
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['title', 'content']
-
-    def validate(self, attrs):
-        if 'title' not in attrs:
-            raise serializers.ValidationError({"title": "To pole jest wymagane."})
-        return attrs
-```
-
-## Najczęstsze błędy HTTP i ich znaczenie
-
-1. **400 Bad Request** - Żądanie nie może być przetworzone z powodu błędu klienta (np. niepoprawne dane wejściowe).
-2. **401 Unauthorized** - Użytkownik nie jest autoryzowany do wykonania żądanej akcji. Wymagana jest autoryzacja.
-3. **403 Forbidden** - Serwer rozumie żądanie, ale odmawia jego wykonania, ponieważ użytkownik nie ma odpowiednich uprawnień.
-4. **404 Not Found** - Żądany zasób nie został znaleziony. Może to być spowodowane tym, że zasób został usunięty lub adres URL jest niepoprawny.
-5. **405 Method Not Allowed** - Metoda żądania jest niedozwolona dla wskazanego zasobu. Na przykład, jeśli próbujesz użyć metody POST na zasobie, który obsługuje tylko GET.
-6. **500 Internal Server Error** - Serwer napotkał niespodziewany błąd i nie może zrealizować żądania. Może to być spowodowane błędem w kodzie aplikacji.
 
 ## Podsumowanie
 
-W tej lekcji nauczyłeś się, jak walidować dane w Django REST Framework oraz jak obsługiwać różne błędy, aby zapewnić użytkownikom jasne i pomocne komunikaty o błędach. Zrozumienie tych mechanizmów jest kluczowe dla tworzenia aplikacji API, które są zarówno funkcjonalne, jak i przyjazne dla użytkownika.
+W tej lekcji dowiedziałeś się, jak serializować złożone struktury danych, takie jak relacje jeden-do-wielu i wiele-do-wielu, używając zagnieżdżonych serializerów. Używając **ForeignKey** i **ManyToManyField**, możesz łatwo serializować powiązane obiekty w Django REST Framework. Dzięki temu możesz zwracać kompletne dane związane z różnymi modelami w jednym żądaniu API, co jest bardzo przydatne w bardziej złożonych aplikacjach.
