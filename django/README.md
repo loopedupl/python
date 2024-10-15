@@ -1,152 +1,139 @@
-# Struktura projektu Django
+### Zarządzanie plikiem settings.py dla różnych środowisk
 
-## Wymagania wstępne
-
-Upewnij się, że masz zainstalowane:
-
-- Python 3.6 lub nowszy
-- Pip (menedżer pakietów dla Pythona)
-- Django (w wersji 3.0 lub nowszej)
+W tej lekcji dowiesz się, jak skonfigurować jeden plik `settings.py`, który zmienia swoje ustawienia w zależności od środowiska (development, staging, production) przy użyciu zmiennych środowiskowych z pliku `.env`. Skorzystamy z biblioteki `python-dotenv`.
 
 ---
 
-## Krok 1: Tworzenie środowiska wirtualnego
+## Krok 1: Zainstaluj `python-dotenv`
 
-Zaleca się użycie wirtualnego środowiska do zarządzania zależnościami projektu. Możesz utworzyć środowisko wirtualne za pomocą `venv`:
+`python-dotenv` pozwala na zarządzanie zmiennymi środowiskowymi przechowywanymi w pliku `.env`, co ułatwia konfigurację środowisk.
 
-```bash
-python -m venv myenv
-```
-
-### Aktywuj środowisko wirtualne:
-
-- **Windows:**
-
-```bash
-myenv\Scripts\activate
-```
-
-- **macOS/Linux:**
-
-```bash
-source myenv/bin/activate
-```
+1. Zainstaluj `python-dotenv`:
+   ```bash
+   pip install python-dotenv
+   ```
 
 ---
 
-## Krok 2: Instalacja Django
+## Krok 2: Utwórz plik `.env`
 
-Zainstaluj Django w aktywowanym środowisku wirtualnym:
+Plik `.env` będzie zawierał wartości zmiennych środowiskowych dla Twojego projektu, takich jak `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS`, i dane bazy danych.
 
-```bash
-pip install django
-```
+1. W głównym katalogu projektu utwórz plik `.env`:
 
----
+   ```bash
+   touch .env
+   ```
 
-## Krok 3: Tworzenie projektu Django
+2. Wypełnij go odpowiednimi zmiennymi, np. dla środowiska deweloperskiego:
 
-Utwórz nowy projekt Django, używając polecenia:
+   ```ini
+   DEBUG=True
+   SECRET_KEY='dev-secret-key'
+   ALLOWED_HOSTS=localhost,127.0.0.1
+   DATABASE_URL=sqlite:///db.sqlite3
+   ```
 
-```bash
-django-admin startproject projekt_django
-```
-
-Zamień `projekt_django` na nazwę swojego projektu.
-
----
-
-## Krok 4: Struktura projektu
-
-Po utworzeniu projektu zobaczysz następującą strukturę katalogów:
-
-```
-projekt_django/
-    manage.py
-    projekt_django/
-        __init__.py
-        asgi.py
-        settings.py
-        urls.py
-        wsgi.py
-```
-
-### Opis plików:
-
-- **manage.py**: Skrypt do zarządzania projektem (uruchamianie serwera, migracje, itp.).
-- **projekt_django/** (katalog): Główny katalog projektu, który zawiera konfigurację.
-- **`__init__.py`**: Plik, który oznacza, że ten katalog jest pakietem Pythona.
-- **settings.py**: Plik konfiguracyjny projektu, w którym definiujesz ustawienia.
-- **urls.py**: Plik, w którym definiujesz ścieżki URL dla swojego projektu.
-- **asgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze ASGI.
-- **wsgi.py**: Plik, który pozwala na uruchomienie aplikacji w serwerze WSGI.
+   A dla środowiska produkcyjnego zmienisz te wartości na bardziej odpowiednie (np. `DEBUG=False`).
 
 ---
 
-## Krok 5: Tworzenie aplikacji Django
+## Krok 3: Załaduj zmienne z `.env` w `settings.py`
 
-Aplikacje w Django to komponenty, które realizują konkretne funkcjonalności. Aby utworzyć nową aplikację, użyj polecenia:
+Teraz zmodyfikujemy plik `settings.py`, aby używał wartości ze zmiennych środowiskowych.
 
-```bash
-python manage.py startapp app_name
-```
+1. Otwórz plik `settings.py` i zaimportuj `load_dotenv` oraz `os`:
 
-My zamienimy `app_name` na nazwę naszej przykładowej aplikacji `blog`.
+   ```python
+   import os
+   from dotenv import load_dotenv
+   from pathlib import Path
+
+   # Wczytaj zmienne z pliku .env
+   load_dotenv()
+
+   # Ustawienia projektu
+   BASE_DIR = Path(__file__).resolve().parent.parent
+   ```
+
+2. Zmodyfikuj ustawienia w `settings.py`, aby odwoływały się do zmiennych środowiskowych:
+
+   ```python
+   SECRET_KEY = os.getenv('SECRET_KEY')
+
+   DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+   ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+
+   # Baza danych (korzystamy ze zmiennej DATABASE_URL)
+   DATABASES = {
+       'default': {
+           'ENGINE': 'django.db.backends.sqlite3',
+           'NAME': BASE_DIR / 'db.sqlite3',
+       }
+   }
+
+   # Jeśli korzystasz z PostgreSQL:
+   # DATABASES = {
+   #     'default': {
+   #         'ENGINE': 'django.db.backends.postgresql',
+   #         'NAME': os.getenv('DB_NAME'),
+   #         'USER': os.getenv('DB_USER'),
+   #         'PASSWORD': os.getenv('DB_PASSWORD'),
+   #         'HOST': os.getenv('DB_HOST'),
+   #         'PORT': os.getenv('DB_PORT'),
+   #     }
+   # }
+   ```
+
+   Dzięki temu wartości zmiennych, takich jak `SECRET_KEY`, `DEBUG` i inne, są wczytywane z pliku `.env`.
 
 ---
 
-## Krok 6: Struktura aplikacji
+## Krok 4: Przykłady plików `.env` dla różnych środowisk
 
-Po utworzeniu aplikacji zobaczysz następującą strukturę katalogów w katalogu `blog`:
+### Plik `.env` dla środowiska deweloperskiego:
 
-```
-blog/
-    migrations/
-        __init__.py
-    __init__.py
-    admin.py
-    apps.py
-    models.py
-    tests.py
-    views.py
+```ini
+DEBUG=True
+SECRET_KEY='dev-secret-key'
+ALLOWED_HOSTS=localhost,127.0.0.1
+DATABASE_URL=sqlite:///db.sqlite3
 ```
 
-### Opis plików:
+### Plik `.env` dla środowiska produkcyjnego:
 
-- **migrations/**: Katalog, w którym przechowywane są migracje bazy danych.
-- **admin.py**: Plik do rejestracji modeli w panelu administracyjnym.
-- **apps.py**: Plik konfiguracyjny aplikacji.
-- **models.py**: Plik, w którym definiujesz modele bazy danych.
-- **tests.py**: Plik, w którym możesz pisać testy dla aplikacji.
-- **views.py**: Plik, w którym definiujesz widoki aplikacji.
-
----
-
-## Krok 7: Dodanie aplikacji do projektu
-
-Aby dodać nowo utworzoną aplikację do projektu, otwórz plik `settings.py` i dodaj nazwę aplikacji do listy `INSTALLED_APPS`:
-
-```python
-INSTALLED_APPS = [
-    ...
-    'blog',
-]
+```ini
+DEBUG=False
+SECRET_KEY='prod-secret-key'
+ALLOWED_HOSTS=your-production-domain.com
+DATABASE_URL=postgres://user:password@db-host/db-name
 ```
 
 ---
 
-## Krok 8: Uruchomienie serwera deweloperskiego
+## Krok 5: Zabezpieczenie pliku `.env`
 
-Na koniec uruchom serwer deweloperski, aby sprawdzić, czy wszystko działa poprawnie:
+Upewnij się, że plik `.env` nie zostanie przypadkowo dodany do systemu kontroli wersji (np. Git):
 
-```bash
-python manage.py runserver
-```
+1. Dodaj plik `.env` do `.gitignore`:
+   ```bash
+   echo '.env' >> .gitignore
+   ```
 
-Serwer powinien być dostępny pod adresem `http://127.0.0.1:8000/`.
+---
+
+## Krok 6: Dynamiczna zmiana ustawień zależnych od środowiska
+
+Dzięki użyciu `python-dotenv` i pliku `.env` możesz łatwo przełączać konfiguracje między różnymi środowiskami (development, production) poprzez zmianę zawartości pliku `.env`.
+
+Przykład uruchomienia aplikacji w trybie produkcyjnym:
+
+1. Ustaw zmienne w pliku `.env` dla środowiska produkcyjnego.
+2. Uruchom serwer Django.
 
 ---
 
 ## Podsumowanie
 
-Stworzyliśmy podstawową strukturę projektu Django oraz dodaliśmy aplikację. Teraz możesz zacząć rozwijać swoje funkcjonalności!
+Teraz masz jeden plik `settings.py`, który korzysta ze zmiennych środowiskowych, dostosowując ustawienia aplikacji w zależności od środowiska. Wystarczy zmienić wartości w pliku `.env` dla odpowiedniego środowiska (np. produkcja, staging, development), a reszta konfiguracji automatycznie się dostosuje.
