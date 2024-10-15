@@ -1,79 +1,175 @@
-# Testowanie manualne endpointów API
+# Międzynarodowość i lokalizacja w Django REST Framework
 
-W tej lekcji nauczysz się, jak ręcznie testować endpointy API w aplikacji Django. Testowanie manualne jest ważnym krokiem w zapewnieniu, że Twoje API działa zgodnie z oczekiwaniami. Wykorzystamy narzędzia takie jak Postman oraz cURL, aby sprawdzić, jak działają różne endpointy.
+W tej lekcji nauczysz się, jak zaimplementować międzynarodowość (internationalization, `i18n`) i lokalizację (localization, `l10n`) w projekcie Django, używając Django REST Framework (DRF). Dzięki tym funkcjom, Twoje API będzie mogło zwracać treści dostosowane do różnych języków i formatów zależnych od lokalizacji użytkownika.
 
-## Krok 1: Instalacja Postmana
+---
 
-Postman to popularne narzędzie do testowania API. Możesz je pobrać i zainstalować ze strony [Postman](https://www.postman.com/downloads/). Po zainstalowaniu uruchom aplikację.
+## Krok 1: Włączenie obsługi międzynarodowości i lokalizacji
 
-## Krok 2: Uruchomienie serwera Django
+1. Otwórz plik `settings.py` i upewnij się, że poniższe ustawienia są aktywne:
 
-Upewnij się, że Twój serwer Django działa. Możesz to zrobić, wykonując poniższe polecenie w terminalu:
-
-```bash
-python manage.py runserver
-```
-
-Domyślnie serwer uruchomi się na adresie `http://127.0.0.1:8000/`.
-
-## Krok 3: Tworzenie nowego żądania w Postmanie
-
-1. Otwórz Postmana.
-2. Kliknij na przycisk `New` (Nowy) i wybierz `Request` (Żądanie).
-3. Nazwij swoje żądanie i przypisz je do nowego lub istniejącego kolekcjonera, a następnie kliknij `Save` (Zapisz).
-
-## Krok 4: Ustawienie żądania
-
-1. Wybierz typ żądania (GET, POST, PUT, DELETE) z rozwijanej listy obok pola URL.
-2. Wprowadź adres URL swojego endpointu. Na przykład, jeśli testujesz endpoint do pobierania wszystkich postów, wprowadź:
-
-   ```
-   http://127.0.0.1:8000/api/posts/
+   ```python
+   USE_I18N = True  # Międzynarodowość (internationalization)
+   USE_L10N = True  # Lokalizacja (localization)
+   USE_TZ = True  # Obsługa stref czasowych
    ```
 
-## Krok 5: Dodawanie danych do żądania (dla POST/PUT)
+2. Te ustawienia aktywują obsługę języków, formatów daty, liczby oraz obsługę stref czasowych.
 
-Jeśli wysyłasz dane (np. w żądaniu POST lub PUT), wykonaj poniższe kroki:
+---
 
-1. Kliknij zakładkę `Body` (Treść) w Postmanie.
-2. Wybierz `raw` i następnie wybierz `JSON` z rozwijanej listy po prawej stronie.
-3. Wprowadź dane w formacie JSON. Na przykład:
+## Krok 2: Ustawienie domyślnego języka i strefy czasowej
 
-   ```json
-   {
-     "title": "Nowy post",
-     "content": "Treść nowego posta"
-   }
+1. W pliku `settings.py` ustaw domyślny język API i strefę czasową:
+
+   ```python
+   LANGUAGE_CODE = 'pl'  # Ustawienie domyślnego języka na polski
+   TIME_ZONE = 'Europe/Warsaw'  # Ustawienie strefy czasowej na Warszawę
    ```
 
-## Krok 6: Wysyłanie żądania
+2. Wartość `LANGUAGE_CODE` możesz zmieniać na inne kody językowe, np. `'en-us'` dla języka angielskiego (USA).
 
-1. Po skonfigurowaniu żądania kliknij przycisk `Send` (Wyślij).
-2. Postman wyśle żądanie do serwera, a odpowiedź pojawi się w dolnej części okna.
+---
 
-## Krok 7: Analiza odpowiedzi
+## Krok 3: Ustawienie lokalizacji w Django REST Framework
 
-- **Status odpowiedzi**: Sprawdź kod statusu HTTP. Kod `200` oznacza, że żądanie zakończyło się sukcesem, `201` oznacza, że zasób został stworzony, `404` oznacza, że zasób nie został znaleziony, a `500` oznacza błąd serwera.
-- **Treść odpowiedzi**: Zobacz treść odpowiedzi w zakładce `Body`. Powinieneś zobaczyć dane zwracane przez API.
+1. Aby DRF automatycznie zwracało treści w odpowiednich językach i formatach, upewnij się, że middleware `LocaleMiddleware` jest włączony. Sprawdź w pliku `settings.py` w sekcji `MIDDLEWARE`:
 
-## Krok 8: Testowanie innych endpointów
+   ```python
+   MIDDLEWARE = [
+       'django.middleware.locale.LocaleMiddleware',  # Middleware lokalizacyjny
+       # Inne middleware...
+   ]
+   ```
 
-Powtórz kroki 3-7 dla innych endpointów API, które chcesz przetestować, zmieniając typ żądania i dane, jeśli to konieczne.
+2. `LocaleMiddleware` odpowiada za rozpoznawanie preferencji językowych na podstawie nagłówków HTTP (np. `Accept-Language`).
 
-## Krok 9: Testowanie za pomocą cURL (opcjonalnie)
+---
 
-Jeśli wolisz testować API za pomocą terminala, możesz użyć cURL. Oto przykład żądania GET:
+## Krok 4: Konfiguracja języków w projekcie
 
-```bash
-curl -X GET http://127.0.0.1:8000/api/posts/
-```
+1. W `settings.py` zdefiniuj listę obsługiwanych języków w projekcie:
 
-A oto przykład żądania POST:
+   ```python
+   LANGUAGES = [
+       ('pl', 'Polski'),
+       ('en', 'English'),
+       ('de', 'Deutsch'),
+   ]
+   ```
 
-```bash
-curl -X POST http://127.0.0.1:8000/api/posts/ -H "Content-Type: application/json" -d '{"title": "Nowy post", "content": "Treść nowego posta"}'
-```
+2. Django i DRF będą teraz wspierały te języki i dostosują odpowiedzi w zależności od wybranego przez użytkownika języka.
+
+---
+
+## Krok 5: Tłumaczenie treści w API
+
+1. Aby przetłumaczyć treści zwracane przez API, użyj mechanizmu tłumaczeń Django. Najpierw zaimportuj funkcję `gettext` w swoich widokach lub serializerach:
+
+   ```python
+   from django.utils.translation import gettext as _
+   ```
+
+2. W swoich serializerach lub widokach oznacz teksty, które chcesz przetłumaczyć, np. komunikaty walidacyjne:
+
+   ```python
+   class ExampleSerializer(serializers.Serializer):
+       title = serializers.CharField()
+
+       def validate_title(self, value):
+           if len(value) < 5:
+               raise serializers.ValidationError(_("Tytuł musi mieć co najmniej 5 znaków."))
+           return value
+   ```
+
+---
+
+## Krok 6: Tłumaczenie komunikatów błędów
+
+1. W DRF tłumaczenia możesz wykorzystać do zmiany komunikatów błędów. Na przykład, gdy używasz walidatorów w serializerach, możesz oznaczyć je do tłumaczenia:
+
+   ```python
+   from django.utils.translation import gettext_lazy as _
+
+   class PostSerializer(serializers.ModelSerializer):
+       title = serializers.CharField(error_messages={'blank': _("Tytuł nie może być pusty.")})
+   ```
+
+2. Dzięki temu komunikaty błędów będą dostosowane do preferencji językowych użytkownika.
+
+---
+
+## Krok 7: Generowanie plików tłumaczeń
+
+1. Aby wygenerować pliki tłumaczeń, uruchom komendę:
+
+   ```bash
+   django-admin makemessages -l pl
+   ```
+
+2. Plik `.po` zostanie utworzony w katalogu `locale/pl/LC_MESSAGES/`. Otwórz go i dodaj tłumaczenia dla oznaczonych tekstów:
+   ```po
+   msgid "Tytuł musi mieć co najmniej 5 znaków."
+   msgstr "The title must have at least 5 characters."
+   ```
+
+---
+
+## Krok 8: Kompilowanie tłumaczeń
+
+1. Po wprowadzeniu tłumaczeń, uruchom komendę, aby je skompilować:
+
+   ```bash
+   django-admin compilemessages
+   ```
+
+2. Tłumaczenia będą teraz dostępne w Twoim API.
+
+---
+
+## Krok 9: Przełączanie języków za pomocą nagłówków
+
+1. Użytkownicy mogą zmieniać język API, wysyłając odpowiedni nagłówek HTTP `Accept-Language`. Przykład zapytania z curl:
+
+   ```bash
+   curl -H "Accept-Language: pl" http://localhost:8000/api/posts/
+   ```
+
+2. DRF automatycznie dostosuje odpowiedzi do wybranego języka.
+
+---
+
+## Krok 10: Dodanie logiki przełączania języków
+
+1. Możesz także zaimplementować logikę przełączania języka w widoku. Na przykład, w widoku opartym na klasach:
+
+   ```python
+   from django.utils import translation
+   from rest_framework.views import APIView
+
+   class MyView(APIView):
+       def get(self, request, *args, **kwargs):
+           user_language = request.headers.get('Accept-Language', 'en')
+           translation.activate(user_language)
+           # Twoja logika widoku
+   ```
+
+2. Możesz aktywować język na podstawie nagłówka lub dowolnego innego mechanizmu.
+
+---
+
+## Krok 11: Obsługa plików tłumaczeń
+
+1. Dodaj ustawienie `LOCALE_PATHS` do pliku `settings.py`, aby wskazać Django, gdzie znajdują się pliki tłumaczeń:
+
+   ```python
+   LOCALE_PATHS = [BASE_DIR / 'locale']
+   ```
+
+2. Katalog `locale/` będzie przechowywać pliki tłumaczeń `.po` oraz `.mo` dla każdego języka.
+
+---
 
 ## Podsumowanie
 
-W tej lekcji nauczyłeś się, jak ręcznie testować endpointy API w aplikacji Django. Wykorzystując Postmana lub cURL, możesz sprawdzić, czy Twoje API działa poprawnie i zgodnie z oczekiwaniami. Regularne testowanie jest kluczowe dla zapewnienia jakości i niezawodności Twojej aplikacji.
+Dzięki powyższym krokom Twój projekt oparty na Django REST Framework będzie obsługiwał różne języki oraz lokalne formaty danych, takie jak daty i liczby. Mechanizm międzynarodowości i lokalizacji pozwoli Ci dostosować Twoje API do potrzeb użytkowników z różnych krajów.
