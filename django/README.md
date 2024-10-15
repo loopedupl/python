@@ -1,106 +1,35 @@
-# Praca z serializerami w Django REST Framework
+# Czym są serializery w Django REST Framework?
 
-W tej lekcji skupimy się na pracy z serializerami w Django REST Framework (DRF). Serializery są kluczowym elementem w konwersji danych do formatu JSON. Dowiesz się, jak tworzyć różne typy serializerów i jak konfigurować ich właściwości.
+W tej lekcji poznasz podstawowe pojęcia związane z serializerami w Django REST Framework. Dowiesz się, dlaczego są one istotne w kontekście przesyłania danych między frontendem a backendem oraz jakie są ich główne funkcje.
 
-## Krok 1: Utworzenie modelu
+## Co to jest serializer?
 
-Upewnij się, że masz model, z którym będziesz pracować. Użyjmy prostego modelu `Post` jako przykładu:
+Serializer w Django REST Framework pełni funkcję mostu pomiędzy danymi modelu a formatem, który może być przesyłany przez API, np. JSON lub XML. Innymi słowy, serializer zamienia złożone obiekty Pythonowe (jak modele Django) na proste formaty danych, które mogą być przesyłane przez sieć.
 
-```python
-# blog/models.py
-from django.db import models
+Z drugiej strony, serializer może także zająć się odwrotnym procesem, czyli deserializacją – zamianą danych wejściowych w formacie JSON (lub innym) na obiekty Pythonowe, które mogą zostać zapisane w bazie danych.
 
-class Post(models.Model):
-    title = models.CharField(max_length=200)
-    content = models.TextField()
-    published_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    is_published = models.BooleanField(default=False)
+## Dlaczego serializery są ważne?
 
-    def __str__(self):
-        return self.title
-```
+Serializery są kluczowe w API z kilku powodów:
 
-## Krok 2: Tworzenie prostego serializera
+1. **Zarządzanie danymi**: API komunikuje się z frontendem za pomocą formatów takich jak JSON. Serializery pozwalają na łatwe konwertowanie danych między bazą danych a tymi formatami.
 
-Zacznijmy od stworzenia prostego serializera dla modelu `Post`. Utwórz plik `serializers.py`, jeśli jeszcze go nie masz:
+2. **Walidacja**: Serializery oferują wbudowane mechanizmy walidacji, które zapewniają, że dane przychodzące do API są prawidłowe i spełniają określone kryteria, zanim zostaną zapisane do bazy danych.
 
-```python
-# blog/serializers.py
-from rest_framework import serializers
-from .models import Post
+3. **Bezpieczeństwo**: Serializery umożliwiają kontrolowanie, jakie pola danych mogą być przekazywane między frontendem a backendem, co pomaga chronić wrażliwe informacje.
 
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ['id', 'title', 'content', 'published_at']
-```
+## Serializery a modele Django
 
-### Wyjaśnienie `class Meta`
+Serializery są bardzo podobne do formularzy Django. Tak jak formularze pozwalają na walidację danych i ich przekształcanie, serializery robią to samo, ale w kontekście API.
 
-- **model**: Wskazuje model, z którym serializer będzie pracował. W tym przypadku to `Post`.
-- **fields**: Określa, które pola modelu mają być uwzględnione w serializacji. Możesz podać listę pól, które chcesz uwzględnić.
+Jednym z popularnych typów serializerów jest `ModelSerializer`, który automatycznie mapuje pola modelu Django na odpowiednie pola serializera. Oprócz tego, DRF oferuje również możliwość definiowania własnych serializerów, co pozwala na pełną kontrolę nad tym, jakie dane są przesyłane w odpowiedziach API.
 
-## Krok 3: Użycie `__all__` w fields
+## Jakie są główne funkcje serializera?
 
-Możesz również użyć `__all__`, aby uwzględnić wszystkie pola modelu w serializacji:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = '__all__'  # Użycie __all__ do uwzględnienia wszystkich pól
-```
-
-## Krok 4: Użycie `exclude`
-
-Alternatywnie, możesz użyć opcji `exclude`, aby wykluczyć określone pola z serializacji. Na przykład, jeśli chcesz wykluczyć pole `published_at`:
-
-```python
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        exclude = ['published_at']  # Wyklucza pole published_at
-```
-
-## Krok 5: Tworzenie zagnieżdżonego serializera
-
-Zagnieżdżone serializery pozwalają na serializację powiązanych modeli. Załóżmy, że masz model `Author`:
-
-```python
-# blog/models.py
-class Author(models.Model):
-    name = models.CharField(max_length=100)
-    bio = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-class Post(models.Model):
-    title = models.CharField(max_length=100)
-    content = models.TextField()
-    author = models.ForeignKey(Author, related_name='posts', on_delete=models.CASCADE)
-    published_at = models.DateTimeField(auto_now_add=True)
-```
-
-Teraz stwórz zagnieżdżony serializer dla `Author`:
-
-```python
-# blog/serializers.py
-class AuthorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Author
-        fields = ['id', 'name']
-
-class PostSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer()  # Zagnieżdżony serializer
-
-    class Meta:
-        model = Post
-        fields = ['id', 'title', 'content', 'published_at', 'author']
-```
+1. **Serializacja** – zamiana obiektów Pythonowych (np. modelu) na JSON lub XML, aby mogły być zwrócone w odpowiedzi na żądania API.
+2. **Deserializacja** – zamiana danych przesyłanych do API (np. w formacie JSON) na obiekty Pythonowe, które można zapisać w bazie danych.
+3. **Walidacja** – sprawdzanie, czy dane wejściowe spełniają określone reguły, np. czy pole jest wymagane, czy ma odpowiednią długość.
 
 ## Podsumowanie
 
-W tej lekcji dowiedziałeś się, jak tworzyć różne typy serializerów w Django REST Framework, używać właściwości `class Meta`, oraz korzystać z `fields`, `__all__` i `exclude`. Ponadto zobaczyłeś, jak tworzyć zagnieżdżone serializery. Serializery są kluczowym elementem w tworzeniu API i umożliwiają efektywne przetwarzanie danych w Twoich aplikacjach Django.
+Serializery to kluczowy komponent Django REST Framework, który zapewnia komunikację między frontendem a backendem, a także walidację i bezpieczeństwo danych. Dzięki nim możemy konwertować dane między formatem używanym w bazie danych a formatem, który jest zrozumiały dla frontendowych aplikacji, takich jak JSON.
