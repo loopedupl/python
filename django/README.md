@@ -1,116 +1,188 @@
-# Zarządzanie plikami statycznymi i mediami w Django
+# Międzynarodowość i lokalizacja w Django REST Framework
 
-W tej lekcji nauczysz się, jak zarządzać plikami statycznymi (np. CSS, JavaScript, obrazki) oraz plikami medialnymi (uploadowane przez użytkowników) w projekcie Django. Skonfigurujemy plik `settings.py`, dodamy ścieżki do plików i zrozumiemy różnice między nimi.
-
----
-
-## Krok 1: Zrozumienie plików statycznych i mediów
-
-1. **Pliki statyczne** – to pliki, które nie zmieniają się dynamicznie, jak pliki CSS, JavaScript czy obrazy wykorzystywane w szablonach. Są one dostarczane bezpośrednio do przeglądarki.
-2. **Pliki medialne** – to pliki, które są uploadowane przez użytkowników, takie jak zdjęcia profilowe, dokumenty czy inne pliki.
+W tej lekcji nauczysz się, jak zaimplementować międzynarodowość (internationalization, `i18n`) i lokalizację (localization, `l10n`) w projekcie Django, używając Django REST Framework (DRF). Dzięki tym funkcjom, Twoje API będzie mogło zwracać treści dostosowane do różnych języków i formatów zależnych od lokalizacji użytkownika.
 
 ---
 
-## Krok 2: Konfiguracja plików statycznych
+## Krok 1: Włączenie obsługi międzynarodowości i lokalizacji
 
-1. **STATIC_URL**: W pliku `settings.py` ustaw ścieżkę URL dla plików statycznych. Django będzie używać tej ścieżki do serwowania plików.
-
-   ```python
-   STATIC_URL = '/static/'
-   ```
-
-2. **STATIC_ROOT**: W przypadku wdrażania aplikacji na produkcji, wszystkie pliki statyczne powinny zostać zebrane w jedno miejsce. Skonfiguruj `STATIC_ROOT` do katalogu, w którym będą przechowywane zebrane pliki.
+1. Otwórz plik `settings.py` i upewnij się, że poniższe ustawienia są aktywne:
 
    ```python
-   STATIC_ROOT = BASE_DIR / 'static'
+   USE_I18N = True  # Międzynarodowość (internationalization)
+   USE_L10N = True  # Lokalizacja (localization)
+   USE_TZ = True  # Obsługa stref czasowych
    ```
 
-3. **Tworzenie katalogu na pliki statyczne**:
-   W głównym katalogu projektu utwórz folder `static`:
-
-   ```bash
-   mkdir static
-   ```
-
-4. **Dodanie plików statycznych**:
-   Umieść swoje pliki CSS, JavaScript i obrazy w odpowiednich podkatalogach w folderze `static`. Na przykład:
-   ```
-   static/
-       css/
-           style.css
-       js/
-           script.js
-       images/
-           logo.png
-   ```
+2. Te ustawienia aktywują obsługę języków, formatów daty, liczby oraz obsługę stref czasowych.
 
 ---
 
-## Krok 3: Serwowanie plików statycznych
+## Krok 2: Ustawienie domyślnego języka i strefy czasowej
 
-1. **W czasie dewelopmentu**:
-   Django automatycznie serwuje pliki statyczne podczas pracy w trybie deweloperskim (DEBUG=True).
+1. W pliku `settings.py` ustaw domyślny język API i strefę czasową:
 
-2. **Na produkcji**:
-   Po wdrożeniu aplikacji na serwerze produkcyjnym, użyj komendy `collectstatic`, aby zebrać wszystkie pliki statyczne w jednym katalogu:
-   ```bash
-   python manage.py collectstatic
+   ```python
+   LANGUAGE_CODE = 'pl'  # Ustawienie domyślnego języka na polski
+   TIME_ZONE = 'Europe/Warsaw'  # Ustawienie strefy czasowej na Warszawę
    ```
-   Pliki zostaną przeniesione do katalogu `STATIC_ROOT`.
+
+2. Wartość `LANGUAGE_CODE` możesz zmieniać na inne kody językowe, np. `'en-us'` dla języka angielskiego (USA).
 
 ---
 
-## Krok 4: Konfiguracja plików medialnych
+## Krok 3: Ustawienie lokalizacji w Django REST Framework
 
-1. **MEDIA_URL**: Określa URL, pod którym dostępne będą pliki uploadowane przez użytkowników.
-
-   ```python
-   MEDIA_URL = '/media/'
-   ```
-
-2. **MEDIA_ROOT**: Określa katalog, w którym będą przechowywane pliki uploadowane przez użytkowników. Tworzymy katalog `media/` w głównym katalogu projektu.
+1. Aby DRF automatycznie zwracało treści w odpowiednich językach i formatach, upewnij się, że middleware `LocaleMiddleware` jest włączony. Sprawdź w pliku `settings.py` w sekcji `MIDDLEWARE`:
 
    ```python
-   MEDIA_ROOT = BASE_DIR / 'media'
-   ```
-
-3. **Tworzenie katalogu na pliki medialne**:
-   Utwórz folder `media` w głównym katalogu projektu:
-   ```bash
-   mkdir media
-   ```
-
----
-
-## Krok 5: Ustawienie URL dla plików statycznych i mediów
-
-1. Aby móc serwować pliki statyczne i media w trybie deweloperskim, musisz zaktualizować plik `urls.py` projektu.
-
-2. **Edytuj plik `urls.py`**:
-   Dodaj obsługę dla plików statycznych i mediów:
-
-   ```python
-   from django.conf import settings
-   from django.conf.urls.static import static
-
-   urlpatterns = [
-       # inne ścieżki
+   MIDDLEWARE = [
+       'django.middleware.locale.LocaleMiddleware',  # Middleware lokalizacyjny
+       # Inne middleware...
    ]
+   ```
 
-   if settings.DEBUG:
-       urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-       urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+2. `LocaleMiddleware` odpowiada za rozpoznawanie preferencji językowych na podstawie nagłówków HTTP (np. `Accept-Language`).
+
+---
+
+## Krok 4: Konfiguracja języków w projekcie
+
+1. W `settings.py` zdefiniuj listę obsługiwanych języków w projekcie:
+
+   ```python
+   LANGUAGES = [
+       ('pl', 'Polski'),
+       ('en', 'English'),
+       ('de', 'Deutsch'),
+   ]
+   ```
+
+2. Django i DRF będą teraz wspierały te języki i dostosują odpowiedzi w zależności od wybranego przez użytkownika języka.
+
+---
+
+## Krok 5: Tłumaczenie treści w API
+
+1. Aby przetłumaczyć treści zwracane przez API, użyj mechanizmu tłumaczeń Django. Najpierw zaimportuj funkcję `gettext` w swoich widokach lub serializerach:
+
+   ```python
+   from django.utils.translation import gettext as _
+   ```
+
+2. W swoich serializerach lub widokach oznacz teksty, które chcesz przetłumaczyć, np. komunikaty walidacyjne:
+
+   ```python
+   class ExampleSerializer(serializers.Serializer):
+       title = serializers.CharField()
+
+       def validate_title(self, value):
+           if len(value) < 5:
+               raise serializers.ValidationError(_("Tytuł musi mieć co najmniej 5 znaków."))
+           return value
    ```
 
 ---
 
-## Krok 6: Praca z plikami na produkcji
+## Krok 6: Tłumaczenie komunikatów błędów
 
-1. Na produkcji powinieneś używać serwera takiego jak Nginx lub S3 (dla plików mediów) do serwowania plików statycznych i mediów.
-2. Pliki statyczne i media na serwerze produkcyjnym nie są serwowane przez Django. Skorzystaj z dedykowanego rozwiązania jak Nginx, aby serwować te pliki bezpośrednio.
+1. W DRF tłumaczenia możesz wykorzystać do zmiany komunikatów błędów. Na przykład, gdy używasz walidatorów w serializerach, możesz oznaczyć je do tłumaczenia:
+
+   ```python
+   from django.utils.translation import gettext_lazy as _
+
+   class PostSerializer(serializers.ModelSerializer):
+       title = serializers.CharField(error_messages={'blank': _("Tytuł nie może być pusty.")})
+   ```
+
+2. Dzięki temu komunikaty błędów będą dostosowane do preferencji językowych użytkownika.
 
 ---
 
-## Krok 7: Podsumowanie
+## Krok 7: Generowanie plików tłumaczeń
 
-Zarządzanie plikami statycznymi i mediami w Django wymaga odpowiedniej konfiguracji, aby serwowanie plików przebiegało bezproblemowo. Pliki statyczne są używane do wyświetlania elementów UI, takich jak style i skrypty, a pliki media obsługują treści przesyłane przez użytkowników.
+1. Aby wygenerować pliki tłumaczeń, uruchom komendę:
+
+   ```bash
+   django-admin makemessages -l pl
+   ```
+
+2. Plik `.po` zostanie utworzony w katalogu `locale/pl/LC_MESSAGES/`. Otwórz go i dodaj tłumaczenia dla oznaczonych tekstów:
+   ```po
+   msgid "Tytuł musi mieć co najmniej 5 znaków."
+   msgstr "The title must have at least 5 characters."
+   ```
+
+---
+
+## Krok 8: Kompilowanie tłumaczeń
+
+1. Po wprowadzeniu tłumaczeń, uruchom komendę, aby je skompilować:
+
+   ```bash
+   django-admin compilemessages
+   ```
+
+2. Tłumaczenia będą teraz dostępne w Twoim API.
+
+---
+
+## Krok 9: Przełączanie języków za pomocą nagłówków
+
+1. Użytkownicy mogą zmieniać język API, wysyłając odpowiedni nagłówek HTTP `Accept-Language`. Przykład zapytania z curl:
+
+   ```bash
+   curl -H "Accept-Language: pl" http://localhost:8000/api/posts/
+   ```
+
+2. DRF automatycznie dostosuje odpowiedzi do wybranego języka.
+
+---
+
+## Krok 10: Dodanie logiki przełączania języków
+
+1. Możesz także zaimplementować logikę przełączania języka w widoku. Na przykład, w widoku opartym na klasach:
+
+   ```python
+   from django.utils import translation
+   from rest_framework.views import APIView
+
+   class MyView(APIView):
+       def get(self, request, *args, **kwargs):
+           user_language = request.headers.get('Accept-Language', 'en')
+           translation.activate(user_language)
+           # Twoja logika widoku
+   ```
+
+2. Możesz aktywować język na podstawie nagłówka lub dowolnego innego mechanizmu.
+
+---
+
+## Krok 11: Obsługa plików tłumaczeń
+
+1. Dodaj ustawienie `LOCALE_PATHS` do pliku `settings.py`, aby wskazać Django, gdzie znajdują się pliki tłumaczeń:
+
+   ```python
+   LOCALE_PATHS = [BASE_DIR / 'locale']
+   ```
+
+2. Katalog `locale/` będzie przechowywać pliki tłumaczeń `.po` oraz `.mo` dla każdego języka.
+
+---
+
+## Krok 12: Testowanie tłumaczeń
+
+1. Aby przetestować, czy tłumaczenia działają poprawnie, możesz wysłać zapytanie do API z różnymi wartościami nagłówka `Accept-Language` i sprawdzić, czy odpowiedzi są w odpowiednim języku.
+
+2. Przykład testu:
+   ```python
+   def test_language_switch(self):
+       response = self.client.get('/api/posts/', HTTP_ACCEPT_LANGUAGE='pl')
+       self.assertEqual(response.data[0]['title'], "Polski tytuł")
+   ```
+
+---
+
+## Podsumowanie
+
+Dzięki powyższym krokom Twój projekt oparty na Django REST Framework będzie obsługiwał różne języki oraz lokalne formaty danych, takie jak daty i liczby. Mechanizm międzynarodowości i lokalizacji pozwoli Ci dostosować Twoje API do potrzeb użytkowników z różnych krajów.
